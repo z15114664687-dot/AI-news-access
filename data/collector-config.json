@@ -1,0 +1,67 @@
+{
+  "strategy": "lightweight-google-site-search",
+  "notes": [
+    "Use Google site queries as discovery layer.",
+    "Collect title, snippet, date, URL and source first.",
+    "Open full article only for high-value verification.",
+    "Avoid bulk Chrome CDP page loading to save memory."
+  ],
+  "entities": [
+    "OpenAI",
+    "Anthropic",
+    "Google Gemini",
+    "Cursor",
+    "Perplexity",
+    "Meta AI",
+    "xAI",
+    "DeepSeek",
+    "Qwen"
+  ],
+  "topics": [
+    "model",
+    "agent",
+    "tool",
+    "content ecosystem",
+    "commercialization",
+    "pricing",
+    "enterprise",
+    "partnership"
+  ],
+  "sources": [
+    {
+      "name": "Business Insider AI",
+      "domain": "businessinsider.com",
+      "query": "{entity} {topic} site:businessinsider.com/artificial-intelligence"
+    },
+    {
+      "name": "Bloomberg AI",
+      "domain": "bloomberg.com",
+      "query": "{entity} {topic} site:bloomberg.com/ai OR site:bloomberg.com/news"
+    },
+    {
+      "name": "CNBC AI",
+      "domain": "cnbc.com",
+      "query": "{entity} {topic} site:cnbc.com/ai-artificial-intelligence"
+    },
+    {
+      "name": "Wall Street Journal AI",
+      "domain": "wsj.com",
+      "query": "{entity} {topic} site:wsj.com/tech/ai"
+    },
+    {
+      "name": "New York Times Technology",
+      "domain": "nytimes.com",
+      "query": "{entity} {topic} site:nytimes.com/section/technology"
+    },
+    {
+      "name": "LatePost",
+      "domain": "latepost.com",
+      "query": "{entity} {topic} site:latepost.com"
+    },
+    {
+      "name": "36Kr",
+      "domain": "36kr.com",
+      "query": "{entity} {topic} site:36kr.com"
+    }
+  ]
+}
