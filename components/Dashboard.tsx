@@ -34,10 +34,23 @@ type ReportState = {
   filename: string;
 };
 
+type CollectorConfigStatus = {
+  hasGeminiKey: boolean;
+  geminiModel: string;
+  defaultDays: number;
+  queryLimit: number;
+};
+
 export default function Dashboard() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [sources, setSources] = useState<Source[]>([]);
   const [runs, setRuns] = useState<CollectionRun[]>([]);
+  const [collectorConfig, setCollectorConfig] = useState<CollectorConfigStatus>({
+    hasGeminiKey: false,
+    geminiModel: "gemini-2.5-flash",
+    defaultDays: 30,
+    queryLimit: 12,
+  });
   const [loading, setLoading] = useState(true);
   const [collecting, setCollecting] = useState(false);
   const [mode, setMode] = useState<Mode>("overview");
@@ -58,7 +71,7 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    Promise.all([loadSignals(), loadCollectionState()]).finally(() => setLoading(false));
+    Promise.all([loadSignals(), loadCollectionState(true)]).finally(() => setLoading(false));
   }, []);
 
   const companies = useMemo(() => companyList(signals), [signals]);
@@ -111,12 +124,16 @@ export default function Dashboard() {
     }
   }
 
-  async function loadCollectionState() {
+  async function loadCollectionState(applyDefaultDays = false) {
     const response = await fetch("/api/collect/runs", { cache: "no-store" });
     if (response.ok) {
       const data = await response.json();
       setSources(data.sources || []);
       setRuns(data.runs || []);
+      if (data.config) {
+        setCollectorConfig(data.config);
+        if (applyDefaultDays) setCollectDays(Number(data.config.defaultDays) || 30);
+      }
     }
   }
 
@@ -384,6 +401,7 @@ export default function Dashboard() {
               collecting={collecting}
               collectDays={collectDays}
               setCollectDays={setCollectDays}
+              config={collectorConfig}
               runCollector={runCollector}
             />
           </section>
@@ -747,6 +765,7 @@ function CollectionPanel({
   collecting,
   collectDays,
   setCollectDays,
+  config,
   runCollector,
 }: {
   sources: Source[];
@@ -754,8 +773,12 @@ function CollectionPanel({
   collecting: boolean;
   collectDays: number;
   setCollectDays: (days: number) => void;
+  config: CollectorConfigStatus;
   runCollector: () => void;
 }) {
+  const latestRun = runs[0];
+  const latestWarning = latestRun?.logs.find((log) => log.level === "warning" || log.level === "error");
+
   return (
     <div className="collect-grid">
       <section className="collect-card">
@@ -767,6 +790,22 @@ function CollectionPanel({
           <button className="primary-action" type="button" disabled={collecting} onClick={runCollector}>
             {collecting ? "采集中…" : "运行采集"}
           </button>
+        </div>
+        <div className="collect-status-grid">
+          <div>
+            <span>Gemini Key</span>
+            <strong className={config.hasGeminiKey ? "status-ok" : "status-warn"}>
+              {config.hasGeminiKey ? "已读取" : "未读取"}
+            </strong>
+          </div>
+          <div>
+            <span>模型</span>
+            <strong>{config.geminiModel}</strong>
+          </div>
+          <div>
+            <span>任务上限</span>
+            <strong>{config.queryLimit}</strong>
+          </div>
         </div>
         <div className="collect-controls">
           <label>
@@ -781,6 +820,7 @@ function CollectionPanel({
           </label>
         </div>
         <p className="collect-note">需要在 .env 配置 GEMINI_API_KEY。时间范围越短，越能减少无效搜索和 API 消耗。</p>
+        {latestWarning ? <p className="collect-alert">{String(latestWarning.message || "最近一次采集没有写入新信号。")}</p> : null}
       </section>
 
       <section className="collect-card">

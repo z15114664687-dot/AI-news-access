@@ -1022,6 +1022,44 @@ th:first-child {
   line-height: 1.55;
 }
 
+.collect-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.collect-status-grid div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #f8fafc;
+}
+
+.collect-status-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.collect-status-grid strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.collect-status-grid .status-ok {
+  color: var(--green);
+}
+
+.collect-status-grid .status-warn {
+  color: var(--rose);
+}
+
 .collect-controls {
   margin-top: 14px;
 }
@@ -1042,6 +1080,17 @@ th:first-child {
   color: var(--ink);
   background: #ffffff;
   font: inherit;
+}
+
+.collect-alert {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #fecdd3;
+  border-radius: var(--radius);
+  color: #9f1239;
+  background: #fff1f2;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .source-list,
@@ -1224,6 +1273,10 @@ th:first-child {
   }
 
   .collect-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .collect-status-grid {
     grid-template-columns: 1fr;
   }
 

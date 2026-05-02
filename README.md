@@ -22,6 +22,12 @@ chmod +x "Open Local App.command"
 
 ### 命令启动
 
+先进入项目根目录：
+
+```bash
+cd /Users/yuanshikang/Desktop/codex
+```
+
 ```bash
 npm install
 npm run local:setup
@@ -67,6 +73,7 @@ cp .env.example .env
 然后在 `.env` 里填入：
 
 ```bash
+SQLITE_PATH=data/ai-intel.db
 GEMINI_API_KEY=你的_Gemini_API_Key
 GEMINI_MODEL=gemini-2.5-flash
 COLLECT_DAYS=30
@@ -74,6 +81,8 @@ COLLECT_QUERY_LIMIT=12
 ```
 
 Gemini API Key 可以在 Google AI Studio 创建：`https://ai.google.dev/gemini-api/docs/api-key`。采集层会调用 Gemini API 的 Google Search grounding：`https://ai.google.dev/gemini-api/docs/grounding/`，让 Gemini 搜索实时网页并输出结构化 JSON，再写入本地 SQLite。
+
+`.env` 已经被 `.gitignore` 忽略，不会提交到 GitHub。修改 `.env` 后需要重启本地服务，让 Next.js 重新读取环境变量。
 
 `COLLECT_DAYS` 是默认采集时间范围，页面「采集」视图里也可以临时选择最近 7、14、30、90 或 180 天。时间范围越短，越能减少无效搜索和 API 消耗。
 
