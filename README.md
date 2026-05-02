@@ -1,6 +1,6 @@
 # AI Ecosystem Intelligence
 
-本地运行的 AI 情报系统，用于跟踪“模型、Agent、工具、内容生态、商业化”的公司和行业信号。当前版本包含 Next.js 前端、本地 SQLite 数据库、手动采集任务、自动分类摘要、报告生成和本地 Markdown 下载。
+本地运行的 AI 情报系统，用于跟踪“模型、Agent、工具、内容生态、商业化”的公司和行业信号。当前版本包含 Next.js 前端、本地 SQLite 数据库、Gemini Google Search grounding 采集、自动分类摘要、报告生成和本地 Markdown 下载。
 
 ## 本地启动
 
@@ -58,13 +58,23 @@ npm run local:setup
 
 ## 采集配置
 
-页面右上角的“采集”视图可以手动触发采集。至少配置以下任意一个搜索 API Key：
+页面右上角的“采集”视图可以手动触发采集。当前版本只需要 Gemini API：
 
-- `BRAVE_SEARCH_API_KEY`
-- `TAVILY_API_KEY`
-- `SERPAPI_API_KEY`
+```bash
+cp .env.example .env
+```
 
-没有 API Key 时，采集按钮仍会创建一条运行记录，但不会写入新信号。第一版不会常驻后台任务，不会自动定时采集。
+然后在 `.env` 里填入：
+
+```bash
+GEMINI_API_KEY=你的_Gemini_API_Key
+GEMINI_MODEL=gemini-2.5-flash
+COLLECT_QUERY_LIMIT=12
+```
+
+Gemini API Key 可以在 Google AI Studio 创建：`https://ai.google.dev/gemini-api/docs/api-key`。采集层会调用 Gemini API 的 Google Search grounding：`https://ai.google.dev/gemini-api/docs/grounding/`，让 Gemini 搜索实时网页并输出结构化 JSON，再写入本地 SQLite。
+
+没有 `GEMINI_API_KEY` 时，采集按钮仍会创建一条运行记录，但不会写入新信号。第一版不会常驻后台任务，不会自动定时采集。
 
 ## GitHub 提交建议
 

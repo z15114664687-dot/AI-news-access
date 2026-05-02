@@ -211,7 +211,7 @@ export default function Dashboard() {
           <section className="sidebar-card">
             <span className="sidebar-kicker">Collector</span>
             <strong>本地采集层</strong>
-            <p>手动触发搜索 API 采集，自动分类摘要，保留来源 URL 和运行记录。</p>
+            <p>手动触发 Gemini Google Search grounding，自动分类摘要，保留来源 URL 和运行记录。</p>
           </section>
 
           <section className="nav-group" aria-label="视角切换">
@@ -304,7 +304,7 @@ export default function Dashboard() {
             </div>
             <div>
               <span>Method</span>
-              <strong>搜索 API 发现 + 自动分类摘要 + 来源 URL 留痕</strong>
+              <strong>Gemini 搜索 grounding + 自动分类摘要 + 来源 URL 留痕</strong>
             </div>
             <div>
               <span>Review</span>
@@ -746,13 +746,13 @@ function CollectionPanel({
         <div className="report-builder-head">
           <div>
             <span>Manual run</span>
-            <strong>搜索 API 采集</strong>
+            <strong>Gemini 采集</strong>
           </div>
           <button className="primary-action" type="button" disabled={collecting} onClick={runCollector}>
             {collecting ? "采集中…" : "运行采集"}
           </button>
         </div>
-        <p className="collect-note">需要配置 Brave、Tavily 或 SerpAPI 任意一个 API Key。没有 Key 时会记录一次跳过的运行，方便确认后端链路。</p>
+        <p className="collect-note">需要在 .env 配置 GEMINI_API_KEY。没有 Key 时会记录一次跳过的运行，方便确认后端链路。</p>
       </section>
 
       <section className="collect-card">

@@ -1,10 +1,10 @@
 {
-  "strategy": "lightweight-google-site-search",
+  "strategy": "gemini-google-search-grounding",
   "notes": [
-    "Use Google site queries as discovery layer.",
-    "Collect title, snippet, date, URL and source first.",
-    "Open full article only for high-value verification.",
-    "Avoid bulk Chrome CDP page loading to save memory."
+    "Use Gemini API with Google Search grounding as discovery layer.",
+    "Ask Gemini to return structured JSON with title, summary, date, URL and source.",
+    "Keep high-value signals unconfirmed until original source review.",
+    "Avoid bulk browser automation to save memory."
   ],
   "entities": [
     "OpenAI",
