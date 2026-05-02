@@ -4,7 +4,23 @@
 
 ## 本地启动
 
-要求：Node.js 24 或更新版本。
+要求：Node.js 22 或更新版本。
+
+### 一键打开
+
+macOS 下可以双击项目根目录里的 `Open Local App.command`。它会自动准备本地 SQLite 数据库、启动本地服务，并打开：
+
+```text
+http://127.0.0.1:3000
+```
+
+如果 macOS 提示没有执行权限，先运行一次：
+
+```bash
+chmod +x "Open Local App.command"
+```
+
+### 命令启动
 
 ```bash
 npm install
