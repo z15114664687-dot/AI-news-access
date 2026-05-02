@@ -46,6 +46,7 @@ export default function Dashboard() {
   const [view, setView] = useState<View>("signals");
   const [query, setQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [collectDays, setCollectDays] = useState(30);
   const [report, setReport] = useState<ReportState>({
     tab: "companies",
     topics: [],
@@ -164,7 +165,11 @@ export default function Dashboard() {
   async function runCollector() {
     setCollecting(true);
     try {
-      await fetch("/api/collect/run", { method: "POST" });
+      await fetch("/api/collect/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ days: collectDays }),
+      });
       await Promise.all([loadSignals(), loadCollectionState()]);
     } finally {
       setCollecting(false);
@@ -373,7 +378,14 @@ export default function Dashboard() {
               <h3>采集任务</h3>
               <span>{sources.length} 个来源配置</span>
             </div>
-            <CollectionPanel sources={sources} runs={runs} collecting={collecting} runCollector={runCollector} />
+            <CollectionPanel
+              sources={sources}
+              runs={runs}
+              collecting={collecting}
+              collectDays={collectDays}
+              setCollectDays={setCollectDays}
+              runCollector={runCollector}
+            />
           </section>
         </main>
       </div>
@@ -733,11 +745,15 @@ function CollectionPanel({
   sources,
   runs,
   collecting,
+  collectDays,
+  setCollectDays,
   runCollector,
 }: {
   sources: Source[];
   runs: CollectionRun[];
   collecting: boolean;
+  collectDays: number;
+  setCollectDays: (days: number) => void;
   runCollector: () => void;
 }) {
   return (
@@ -752,7 +768,19 @@ function CollectionPanel({
             {collecting ? "采集中…" : "运行采集"}
           </button>
         </div>
-        <p className="collect-note">需要在 .env 配置 GEMINI_API_KEY。没有 Key 时会记录一次跳过的运行，方便确认后端链路。</p>
+        <div className="collect-controls">
+          <label>
+            <span>采集时间范围</span>
+            <select value={collectDays} onChange={(event) => setCollectDays(Number(event.target.value))}>
+              <option value={7}>最近 7 天</option>
+              <option value={14}>最近 14 天</option>
+              <option value={30}>最近 30 天</option>
+              <option value={90}>最近 90 天</option>
+              <option value={180}>最近 180 天</option>
+            </select>
+          </label>
+        </div>
+        <p className="collect-note">需要在 .env 配置 GEMINI_API_KEY。时间范围越短，越能减少无效搜索和 API 消耗。</p>
       </section>
 
       <section className="collect-card">

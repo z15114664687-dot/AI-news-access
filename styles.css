@@ -1022,6 +1022,28 @@ th:first-child {
   line-height: 1.55;
 }
 
+.collect-controls {
+  margin-top: 14px;
+}
+
+.collect-controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.collect-controls select {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  background: #ffffff;
+  font: inherit;
+}
+
 .source-list,
 .run-list {
   display: grid;

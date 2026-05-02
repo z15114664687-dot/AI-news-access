@@ -14,6 +14,7 @@ type CollectionTask = {
   entity: string;
   topic: string;
   sourceDomains: string[];
+  days: number;
 };
 
 type GeminiSignal = {
@@ -41,7 +42,7 @@ type RunStats = {
   logs: Array<Record<string, unknown>>;
 };
 
-export async function runCollection() {
+export async function runCollection(options: { days?: number } = {}) {
   const runId = crypto.randomUUID();
   await createCollectionRun(runId);
 
@@ -59,7 +60,8 @@ export async function runCollection() {
 
     const config = readCollectorConfig();
     const sources = (await listSources()).filter((source) => source.enabled);
-    const tasks = buildTasks(config, sources.map((source) => source.domain));
+    const days = clampDays(options.days ?? Number(process.env.COLLECT_DAYS || 30));
+    const tasks = buildTasks(config, sources.map((source) => source.domain), days);
 
     for (const task of tasks) {
       try {
@@ -81,7 +83,7 @@ export async function runCollection() {
           await insertSignal(signal);
           stats.insertedCount += 1;
         }
-        stats.logs.push({ level: "info", entity: task.entity, topic: task.topic, found: results.length });
+        stats.logs.push({ level: "info", entity: task.entity, topic: task.topic, days: task.days, found: results.length });
       } catch (error) {
         stats.errorCount += 1;
         stats.logs.push({
@@ -110,13 +112,13 @@ function readCollectorConfig(): CollectorConfig {
   return { entities: config.entities || [], topics: config.topics || [] };
 }
 
-function buildTasks(config: CollectorConfig, sourceDomains: string[]) {
+function buildTasks(config: CollectorConfig, sourceDomains: string[], days: number) {
   const limit = Number(process.env.COLLECT_QUERY_LIMIT || 12);
   const tasks: CollectionTask[] = [];
 
   for (const entity of config.entities) {
     for (const topic of config.topics) {
-      tasks.push({ entity, topic, sourceDomains });
+      tasks.push({ entity, topic, sourceDomains, days });
       if (tasks.length >= limit) return tasks;
     }
   }
@@ -154,6 +156,7 @@ async function collectWithGemini(task: CollectionTask, apiKey: string): Promise<
 
 function buildGeminiPrompt(task: CollectionTask) {
   const domains = task.sourceDomains.slice(0, 12).join(", ");
+  const sinceDate = new Date(Date.now() - task.days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   return [
     "你是一个 AI 行业情报采集器。请使用 Google Search grounding 查找最新、可核验的 AI 新闻和官方动态。",
     "",
@@ -161,7 +164,7 @@ function buildGeminiPrompt(task: CollectionTask) {
     `采集主题：${task.topic}`,
     `优先来源域名：${domains}`,
     "",
-    "只返回最近 180 天内、和对象及主题高度相关的 1 到 3 条情报信号。不要编造 URL、日期或来源；如果没有可靠来源，返回空数组。",
+    `只返回 ${sinceDate} 之后、和对象及主题高度相关的 1 到 3 条情报信号。不要编造 URL、日期或来源；如果没有可靠来源，返回空数组。`,
     "",
     "必须只输出合法 JSON，不要 Markdown，不要解释文字。JSON 结构如下：",
     `{
@@ -248,6 +251,11 @@ function normalizeGeminiSignal(result: GeminiSignal): Omit<Signal, "createdAt" |
     },
     confirmed: false,
   };
+}
+
+function clampDays(value: number) {
+  if (!Number.isFinite(value)) return 30;
+  return Math.min(180, Math.max(1, Math.round(value)));
 }
 
 function normalizeDate(value?: string) {
