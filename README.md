@@ -28,6 +28,12 @@ npm run local:setup
 npm run dev
 ```
 
+也可以用一条命令启动并打开浏览器：
+
+```bash
+npm run local:open
+```
+
 打开 `http://localhost:3000`。本地版没有登录页，默认只绑定本机开发服务；不要直接暴露到公网。
 
 ## 数据文件
