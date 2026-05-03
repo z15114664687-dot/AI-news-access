@@ -231,7 +231,8 @@ function normalizeForSimilarity(value: string) {
     .toLowerCase()
     .replace(/[\s\p{P}\p{S}]+/gu, "")
     .replace(/amazonwebservices|amazonaws|amazonbedrock|aws/g, "amazon")
-    .replace(/googlecloud/g, "google");
+    .replace(/googlecloud/g, "google")
+    .replace(/azure/g, "microsoft");
 }
 
 function keywordOverlapScore(left: string, right: string) {
@@ -247,7 +248,7 @@ function keywordTokens(value: string) {
   return [
     ...new Set(
       normalizeForSimilarity(value)
-        .replace(/(claude|opus|sonnet|haiku|vertex|google|anthropic|openai|gpt|codex|bedrock|agent|api|token|pricing|price|model|cloud|amazon|aws|managed|models)/g, " $1 ")
+        .replace(/(claude|opus|sonnet|haiku|vertex|google|anthropic|openai|gpt|codex|bedrock|agent|api|token|pricing|price|model|cloud|amazon|aws|managed|models|microsoft|exclusive|exclusivity|partner|partnership|license|licensing|ip|revenue)/g, " $1 ")
         .split(/[^a-z0-9\u4e00-\u9fa5]+/i)
         .filter((token) => token.length >= 2)
         .filter((token) => !["and", "the", "with", "for", "在", "和", "与", "的", "上", "中", "多个", "多款"].includes(token)),

@@ -21,9 +21,9 @@ const companyCandidates = [
 ];
 
 const topicRules: Array<{ topic: string; keywords: string[] }> = [
-  { topic: "商业化", keywords: ["ads", "advertising", "revenue", "pricing", "subscription", "contract", "enterprise deal", "arr", "funding", "valuation", "pentagon", "token", "tokens", "usage cost", "cost estimate", "discount", "rate card", "价格", "定价", "订阅", "合同", "收入", "融资", "估值", "商业化", "国防", "采购", "使用成本", "成本预估", "成本压力", "折扣", "用量", "计费"] },
+  { topic: "商业化", keywords: ["ads", "advertising", "revenue", "pricing", "subscription", "contract", "enterprise deal", "arr", "funding", "valuation", "pentagon", "token pricing", "token price", "usage cost", "cost estimate", "discount", "rate card", "token价格", "token定价", "价格", "定价", "订阅", "合同", "收入", "融资", "估值", "商业化", "国防", "采购", "使用成本", "成本预估", "成本压力", "折扣", "用量", "计费"] },
   { topic: "内容生态", keywords: ["creator", "video", "youtube", "tiktok", "instagram", "reddit", "content", "generated content", "livestream", "创作者", "视频", "内容", "直播", "社交平台"] },
-  { topic: "Agent", keywords: ["agent", "agents", "autonomy", "computer use", "codex", "claude code", "operator", "devin", "代理", "智能体", "自主", "长程任务", "多步骤", "composer"] },
+  { topic: "Agent", keywords: ["agent", "agents", "autonomy", "computer use", "codex", "codex sandbox", "claude code", "operator", "devin", "代理", "智能体", "自主", "长程任务", "多步骤", "composer"] },
   { topic: "工具", keywords: ["tool", "tools", "workspace", "search", "shopping", "office", "copilot", "editor", "integration", "workflow", "connector", "connectors", "security", "vulnerability", "工具", "工作区", "搜索", "购物", "集成", "连接器", "插件", "安全工具", "网络安全", "漏洞", "扫描", "补丁", "工作流"] },
   { topic: "模型", keywords: ["model", "reasoning", "benchmark", "multimodal", "context", "llm", "gpt", "claude", "gemini", "llama", "sora", "veo", "模型", "推理", "多模态", "上下文", "基准", "评测"] },
 ];
@@ -83,10 +83,20 @@ export function inferPrimaryTopic(title: string, summary = "", fallback = "工�
   const text = `${title} ${summary}`.toLowerCase();
   if (matches(text, "商业化")) return "商业化";
   if (matches(text, "内容生态")) return "内容生态";
+  if (isModelReleaseOrCapability(title, summary)) return "模型";
   if (matches(text, "Agent")) return "Agent";
   if (matches(text, "工具")) return "工具";
   if (matches(text, "模型")) return "模型";
   return topicOrder.includes(fallback) ? fallback : "工具";
+}
+
+function isModelReleaseOrCapability(title: string, summary: string) {
+  const titleText = title.toLowerCase();
+  const text = `${title} ${summary}`.toLowerCase();
+  if (/mythos|漏洞挖掘模型|高危漏洞.*模型|模型.*漏洞/.test(text)) return true;
+  if (/(推出|发布|上线|登陆|available|launch|release).{0,30}(gpt-\d|gpt\d|claude|gemini|llama|grok|sora|veo)/i.test(titleText)) return true;
+  if (/(gpt-\d|gpt\d|claude|gemini|llama|grok|sora|veo).{0,30}(模型|model|推理|reasoning|能力)/i.test(text)) return true;
+  return false;
 }
 
 function matchingTopics(text: string) {

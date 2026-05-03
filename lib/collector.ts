@@ -5,7 +5,7 @@ import { normalizeCompanyName } from "./companies";
 import { inferPrimaryTopic, signalIdFromUrl, topicOrder } from "./classifier";
 import { findSimilarSignal, finishCollectionRun, insertSignal, listSources, createCollectionRun } from "./db";
 import { resolveSourceUrl } from "./linkResolver";
-import { normalizeSourceUrl } from "./sourceUrls";
+import { isUsableSourceUrl, normalizeSourceUrl } from "./sourceUrls";
 import type { Confidence, EvidenceLevel, Signal } from "./types";
 
 type CollectorConfig = {
@@ -75,7 +75,26 @@ export async function runCollection(options: { days?: number } = {}) {
           const signal = await normalizeGeminiSignal(result, task.topic);
           if (!signal) {
             stats.skippedCount += 1;
+            stats.logs.push({
+              level: "warning",
+              action: "skip-invalid-signal",
+              title: cleanString(result.title),
+              source: cleanString(result.source),
+              domain: cleanString(result.domain),
+              reason: "missing-title-or-link-candidate",
+            });
             continue;
+          }
+
+          const sourceResolution = signal.aiClassification.sourceResolution as Record<string, unknown> | undefined;
+          if (sourceResolution?.status && sourceResolution.status !== "resolved") {
+            stats.logs.push({
+              level: "warning",
+              action: "source-link-fallback",
+              title: signal.title,
+              status: sourceResolution.status,
+              url: signal.url,
+            });
           }
 
           const existing = await findSimilarSignal(signal);
@@ -259,16 +278,25 @@ function parseJsonObject(text: string): { signals?: GeminiSignal[] } {
 }
 
 async function normalizeGeminiSignal(result: GeminiSignal, fallbackTopic: string): Promise<Omit<Signal, "createdAt" | "updatedAt"> | null> {
+  const candidateUrl = normalizeSourceUrl(cleanString(result.url));
+  const sourceQuery = cleanString(result.sourceQuery);
   const checkedUrl = await resolveSourceUrl({
-    url: normalizeSourceUrl(cleanString(result.url)),
+    url: candidateUrl,
     title: cleanString(result.title),
     domain: cleanString(result.domain),
     source: cleanString(result.source),
-    query: cleanString(result.sourceQuery),
+    query: sourceQuery,
   });
-  if (!checkedUrl) return null;
+  const fallbackUrl = fallbackSourceUrl({
+    url: candidateUrl,
+    title: cleanString(result.title),
+    domain: cleanString(result.domain),
+    query: sourceQuery,
+  });
+  const finalUrl = checkedUrl || fallbackUrl;
+  if (!cleanString(result.title) || !finalUrl) return null;
 
-  const domain = cleanString(result.domain) || domainFromUrl(checkedUrl);
+  const domain = cleanString(result.domain) || domainFromUrl(finalUrl);
   const companies = Array.isArray(result.companies) ? result.companies.map(cleanString).map(normalizeCompanyName).filter(Boolean) : [];
   const topics = Array.isArray(result.topics)
     ? result.topics.map(cleanString).filter((topic) => topicOrder.includes(topic))
@@ -278,7 +306,7 @@ async function normalizeGeminiSignal(result: GeminiSignal, fallbackTopic: string
   const normalizedEntity = normalizeCompanyName(entity);
 
   return {
-    id: signalIdFromUrl(checkedUrl),
+    id: signalIdFromUrl(finalUrl),
     date: normalizeDate(result.date),
     entity: normalizedEntity,
     entityType: normalizeEntityType(result.entityType),
@@ -290,7 +318,7 @@ async function normalizeGeminiSignal(result: GeminiSignal, fallbackTopic: string
     topicMode: "exclusive",
     source: cleanString(result.source) || domain,
     domain,
-    url: checkedUrl,
+    url: finalUrl,
     evidenceLevel: normalizeEvidence(result.evidenceLevel, domain),
     confidence: normalizeConfidence(result.confidence),
     collectionSource: "gemini-google-search",
@@ -299,10 +327,27 @@ async function normalizeGeminiSignal(result: GeminiSignal, fallbackTopic: string
       model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
       matchedTopics: topics.length ? [...new Set(topics)] : [primaryTopic],
       primaryTopic,
+      sourceQuery,
+      sourceResolution: {
+        status: checkedUrl ? "resolved" : isUsableSourceUrl(candidateUrl) ? "unverified-url" : "search-fallback",
+        originalUrl: candidateUrl,
+      },
       needsReview: normalizeConfidence(result.confidence) !== "high",
     },
     confirmed: false,
   };
+}
+
+function fallbackSourceUrl(input: { url: string; title: string; domain: string; query: string }) {
+  if (isUsableSourceUrl(input.url)) return input.url;
+  const domain = isFallbackSearchDomain(input.domain) ? input.domain : "";
+  const query = [domain ? `site:${domain}` : "", input.query || input.title].filter(Boolean).join(" ");
+  return query ? `https://www.google.com/search?q=${encodeURIComponent(query)}` : "";
+}
+
+function isFallbackSearchDomain(domain: string) {
+  if (!domain) return false;
+  return !domain.includes("vertexaisearch.cloud.google.com") && !domain.includes("grounding-api-redirect");
 }
 
 function clampDays(value: number) {
