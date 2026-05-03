@@ -57,6 +57,7 @@ function seedSignals(signals) {
   );
 
   for (const signal of signals) {
+    const primaryTopic = Array.isArray(signal.topics) && signal.topics.length ? signal.topics[0] : "工具";
     statement.run(
       signal.id,
       signal.date,
@@ -66,14 +67,14 @@ function seedSignals(signals) {
       signal.product || "",
       signal.title,
       signal.summary,
-      JSON.stringify(signal.topics || []),
-      signal.topicMode || "exclusive",
+      JSON.stringify([primaryTopic]),
+      "exclusive",
       signal.source,
       signal.domain,
       signal.url,
       signal.evidenceLevel || "media",
       signal.confidence || "medium",
-      JSON.stringify({ method: "seed", topics: signal.topics || [] }),
+      JSON.stringify({ method: "seed", topics: [primaryTopic] }),
     );
   }
 }

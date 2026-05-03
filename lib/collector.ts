@@ -1,8 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { signalIdFromUrl, topicOrder } from "./classifier";
-import { createCollectionRun, findSignalByUrl, finishCollectionRun, insertSignal, listSources } from "./db";
+import { normalizeCompanyName } from "./companies";
+import { inferPrimaryTopic, signalIdFromUrl, topicOrder } from "./classifier";
+import { findSimilarSignal, finishCollectionRun, insertSignal, listSources, createCollectionRun } from "./db";
+import { resolveSourceUrl } from "./linkResolver";
+import { normalizeSourceUrl } from "./sourceUrls";
 import type { Confidence, EvidenceLevel, Signal } from "./types";
 
 type CollectorConfig = {
@@ -30,6 +33,7 @@ type GeminiSignal = {
   source?: string;
   domain?: string;
   url?: string;
+  sourceQuery?: string;
   evidenceLevel?: string;
   confidence?: string;
 };
@@ -68,15 +72,16 @@ export async function runCollection(options: { days?: number } = {}) {
         const results = await collectWithGemini(task, apiKey);
         stats.foundCount += results.length;
         for (const result of results) {
-          const signal = normalizeGeminiSignal(result);
+          const signal = await normalizeGeminiSignal(result, task.topic);
           if (!signal) {
             stats.skippedCount += 1;
             continue;
           }
 
-          const existing = await findSignalByUrl(signal.url);
+          const existing = await findSimilarSignal(signal);
           if (existing) {
             stats.skippedCount += 1;
+            stats.logs.push({ level: "info", action: "skip-duplicate", newTitle: signal.title, existingId: existing.id, reason: existing.reason });
             continue;
           }
 
@@ -127,31 +132,55 @@ function buildTasks(config: CollectorConfig, sourceDomains: string[], days: numb
 
 async function collectWithGemini(task: CollectionTask, apiKey: string): Promise<GeminiSignal[]> {
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify({
+  const data = await requestGeminiWithRetry(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    apiKey,
+    {
       contents: [{ parts: [{ text: buildGeminiPrompt(task) }] }],
       tools: [{ googleSearch: {} }],
       generationConfig: {
         temperature: 0.2,
         topP: 0.8,
       },
-    }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`Gemini collection failed: ${response.status} ${text.slice(0, 240)}`);
-  }
-
-  const data = await response.json();
+    },
+  );
   const text = extractGeminiText(data);
   const parsed = parseJsonObject(text);
   return Array.isArray(parsed.signals) ? parsed.signals : [];
+}
+
+async function requestGeminiWithRetry(url: string, apiKey: string, body: Record<string, unknown>) {
+  const maxAttempts = 3;
+  let lastError = "";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(45000),
+      });
+
+      if (response.ok) return (await response.json()) as Record<string, unknown>;
+
+      const text = await response.text().catch(() => "");
+      lastError = `Gemini collection failed: ${response.status} ${text.slice(0, 240)}`;
+      if (!isRetriableStatus(response.status) || attempt === maxAttempts) throw new Error(lastError);
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+      if (attempt === maxAttempts || !isRetriableFetchError(error)) {
+        throw new Error(`Gemini request failed after ${attempt} attempt${attempt > 1 ? "s" : ""}: ${lastError}`);
+      }
+    }
+
+    await sleep(600 * attempt ** 2);
+  }
+
+  throw new Error(lastError || "Gemini request failed.");
 }
 
 function buildGeminiPrompt(task: CollectionTask) {
@@ -164,7 +193,10 @@ function buildGeminiPrompt(task: CollectionTask) {
     `采集主题：${task.topic}`,
     `优先来源域名：${domains}`,
     "",
-    `只返回 ${sinceDate} 之后、和对象及主题高度相关的 1 到 3 条情报信号。不要编造 URL、日期或来源；如果没有可靠来源，返回空数组。`,
+    `只返回 ${sinceDate} 之后、和对象及主题高度相关的 1 到 3 条情报信号。不要编造日期或来源；如果没有可靠来源，返回空数组。`,
+    "url 优先返回可直接访问的原文页面 canonical URL；如果 Google grounding 只能提供临时跳转链接，也可以放在 url 字段，后端会用浏览器/CDP 解析最终原文链接。",
+    "sourceQuery 必须给出一个能定位原文的短查询词，包含公司/产品名和标题核心词；当 url 是临时跳转或不可访问时，后端会用它打开搜索结果并取原文链接。",
+    "JSON 字符串内不要包含未转义换行或控制字符；摘要和标题都必须是单行文本。",
     "",
     "必须只输出合法 JSON，不要 Markdown，不要解释文字。JSON 结构如下：",
     `{
@@ -177,11 +209,12 @@ function buildGeminiPrompt(task: CollectionTask) {
       "product": "产品或项目名",
       "title": "中文标题，不超过 60 字",
       "summary": "中文摘要，不超过 120 字",
-      "topics": ["模型 | Agent | 工具 | 内容生态 | 商业化"],
-      "topicMode": "exclusive 或 cross_topic",
+      "topics": ["一个主话题：模型 | Agent | 工具 | 内容生态 | 商业化"],
+      "topicMode": "exclusive",
       "source": "来源名称",
       "domain": "来源域名",
-      "url": "来源 URL",
+      "url": "原文 URL 或 grounding 临时跳转 URL",
+      "sourceQuery": "用于定位原文页面的搜索查询",
       "evidenceLevel": "official 或 media 或 analysis",
       "confidence": "high 或 medium 或 low"
     }
@@ -189,6 +222,7 @@ function buildGeminiPrompt(task: CollectionTask) {
 }`,
     "",
     `话题只能使用这些中文标签：${topicOrder.join("、")}。`,
+    "每条情报只能归入一个主话题，topics 数组必须只有 1 个元素；不要输出 cross_topic，topicMode 固定为 exclusive。",
   ].join("\n");
 }
 
@@ -212,41 +246,59 @@ function parseJsonObject(text: string): { signals?: GeminiSignal[] } {
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start < 0 || end < start) throw new Error("Gemini did not return a JSON object.");
-  return JSON.parse(cleaned.slice(start, end + 1));
+  const jsonText = cleaned.slice(start, end + 1);
+  try {
+    return JSON.parse(jsonText);
+  } catch (error) {
+    try {
+      return JSON.parse(escapeControlCharactersInJsonStrings(jsonText));
+    } catch {
+      throw error;
+    }
+  }
 }
 
-function normalizeGeminiSignal(result: GeminiSignal): Omit<Signal, "createdAt" | "updatedAt"> | null {
-  const url = cleanString(result.url);
-  if (!url || !/^https?:\/\//i.test(url)) return null;
+async function normalizeGeminiSignal(result: GeminiSignal, fallbackTopic: string): Promise<Omit<Signal, "createdAt" | "updatedAt"> | null> {
+  const checkedUrl = await resolveSourceUrl({
+    url: normalizeSourceUrl(cleanString(result.url)),
+    title: cleanString(result.title),
+    domain: cleanString(result.domain),
+    source: cleanString(result.source),
+    query: cleanString(result.sourceQuery),
+  });
+  if (!checkedUrl) return null;
 
-  const domain = cleanString(result.domain) || domainFromUrl(url);
-  const companies = Array.isArray(result.companies) ? result.companies.map(cleanString).filter(Boolean) : [];
+  const domain = cleanString(result.domain) || domainFromUrl(checkedUrl);
+  const companies = Array.isArray(result.companies) ? result.companies.map(cleanString).map(normalizeCompanyName).filter(Boolean) : [];
   const topics = Array.isArray(result.topics)
     ? result.topics.map(cleanString).filter((topic) => topicOrder.includes(topic))
     : [];
-  const safeTopics = topics.length ? [...new Set(topics)] : ["工具"];
+  const primaryTopic = inferPrimaryTopic(cleanString(result.title), cleanString(result.summary), topics[0] || fallbackTopic);
   const entity = cleanString(result.entity) || companies[0] || "Market Signal";
+  const normalizedEntity = normalizeCompanyName(entity);
 
   return {
-    id: signalIdFromUrl(url),
+    id: signalIdFromUrl(checkedUrl),
     date: normalizeDate(result.date),
-    entity,
+    entity: normalizedEntity,
     entityType: normalizeEntityType(result.entityType),
-    companies: companies.length ? [...new Set(companies)] : entity !== "Market Signal" ? [entity] : [],
+    companies: companies.length ? [...new Set(companies)] : normalizedEntity !== "Market Signal" ? [normalizedEntity] : [],
     product: cleanString(result.product) || "AI",
     title: cleanString(result.title).slice(0, 180),
     summary: cleanString(result.summary).slice(0, 260),
-    topics: safeTopics,
-    topicMode: result.topicMode === "cross_topic" || safeTopics.length > 1 ? "cross_topic" : "exclusive",
+    topics: [primaryTopic],
+    topicMode: "exclusive",
     source: cleanString(result.source) || domain,
     domain,
-    url,
+    url: checkedUrl,
     evidenceLevel: normalizeEvidence(result.evidenceLevel, domain),
     confidence: normalizeConfidence(result.confidence),
     collectionSource: "gemini-google-search",
     aiClassification: {
       method: "gemini-grounding-v1",
       model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+      matchedTopics: topics.length ? [...new Set(topics)] : [primaryTopic],
+      primaryTopic,
       needsReview: normalizeConfidence(result.confidence) !== "high",
     },
     confirmed: false,
@@ -277,6 +329,71 @@ function normalizeEvidence(value: unknown, domain: string): EvidenceLevel {
 
 function normalizeConfidence(value: unknown): Confidence {
   return value === "high" || value === "medium" || value === "low" ? value : "medium";
+}
+
+function isRetriableStatus(status: number) {
+  return status === 408 || status === 429 || status >= 500;
+}
+
+function isRetriableFetchError(error: unknown) {
+  if (!(error instanceof Error)) return true;
+  return ["AbortError", "TimeoutError", "TypeError"].includes(error.name) || /fetch failed|terminated|timeout|network/i.test(error.message);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function escapeControlCharactersInJsonStrings(value: string) {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (const char of value) {
+    if (!inString) {
+      result += char;
+      if (char === "\"") inString = true;
+      continue;
+    }
+
+    if (escaped) {
+      result += char;
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      result += char;
+      escaped = true;
+      continue;
+    }
+
+    if (char === "\"") {
+      result += char;
+      inString = false;
+      continue;
+    }
+
+    if (char === "\n") {
+      result += "\\n";
+      continue;
+    }
+
+    if (char === "\r") {
+      result += "\\r";
+      continue;
+    }
+
+    if (char === "\t") {
+      result += "\\t";
+      continue;
+    }
+
+    if (char < " ") continue;
+    result += char;
+  }
+
+  return result;
 }
 
 function cleanString(value: unknown) {

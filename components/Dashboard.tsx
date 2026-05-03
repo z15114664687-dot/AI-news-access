@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { companiesForSignal, sortCompanies } from "@/lib/companies";
+import { sourceUrlForSignal } from "@/lib/sourceUrls";
 import type { CollectionRun, Signal, Source } from "@/lib/types";
 
 const topicOrder = ["模型", "Agent", "工具", "内容生态", "商业化"];
@@ -18,8 +20,6 @@ const topicColor: Record<string, string> = {
   内容生态: "#b45309",
   商业化: "#be123c",
 };
-const preferredCompanyOrder = ["OpenAI", "Anthropic", "Google", "Cursor"];
-
 type Mode = "overview" | "topic" | "company";
 type View = "signals" | "matrix" | "map" | "collect";
 type ReportTab = "companies" | "topics" | "date";
@@ -32,6 +32,7 @@ type ReportState = {
   endDate: string;
   markdown: string;
   filename: string;
+  generating: boolean;
 };
 
 type CollectorConfigStatus = {
@@ -68,6 +69,7 @@ export default function Dashboard() {
     endDate: "",
     markdown: "",
     filename: "ai-intelligence-report.md",
+    generating: false,
   });
 
   useEffect(() => {
@@ -153,30 +155,36 @@ export default function Dashboard() {
       endDate: "",
       markdown: "",
       filename: "ai-intelligence-report.md",
+      generating: false,
     });
   }
 
   async function generateReport() {
-    const response = await fetch("/api/reports", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        company: mode === "company" && companyName !== "all" ? companyName : undefined,
-        topic: mode === "topic" && topic !== "all" ? topic : undefined,
-        companies: mode !== "company" ? report.companies : undefined,
-        topics: mode !== "topic" ? report.topics : undefined,
-        startDate: report.startDate || undefined,
-        endDate: report.endDate || undefined,
-        query: query || undefined,
-      }),
-    });
-    if (!response.ok) return;
-    const data = await response.json();
-    setReport((current) => ({
-      ...current,
-      markdown: data.report.markdown,
-      filename: data.report.filename,
-    }));
+    setReport((current) => ({ ...current, generating: true }));
+    try {
+      const response = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          company: mode === "company" && companyName !== "all" ? companyName : undefined,
+          topic: mode === "topic" && topic !== "all" ? topic : undefined,
+          companies: mode !== "company" ? report.companies : undefined,
+          topics: mode !== "topic" ? report.topics : undefined,
+          startDate: report.startDate || undefined,
+          endDate: report.endDate || undefined,
+          query: query || undefined,
+        }),
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      setReport((current) => ({
+        ...current,
+        markdown: data.report.markdown,
+        filename: data.report.filename,
+      }));
+    } finally {
+      setReport((current) => ({ ...current, generating: false }));
+    }
   }
 
   async function runCollector() {
@@ -455,8 +463,8 @@ function ReportBuilder({
             <span>{scopeLabel}</span>
             <strong>{scopeTitle}</strong>
           </div>
-          <button className="primary-action" type="button" onClick={generateReport}>
-            生成总结报告
+          <button className="primary-action" type="button" disabled={report.generating} onClick={generateReport}>
+            {report.generating ? "AI 总结中…" : "生成总结报告"}
           </button>
         </div>
 
@@ -629,6 +637,7 @@ function SignalGrid({ signals }: { signals: Signal[] }) {
     <div className="signal-grid">
       {signals.map((signal) => {
         const mainTopic = signal.topics[0] || "工具";
+        const sourceUrl = sourceUrlForSignal(signal);
         return (
           <article className="signal-card" key={signal.id}>
             <div className="signal-top">
@@ -641,12 +650,6 @@ function SignalGrid({ signals }: { signals: Signal[] }) {
               <span className="evidence-pill">{formatEvidence(signal.evidenceLevel)}</span>
               <span className="evidence-pill">{formatConfidence(signal.confidence)}</span>
               <span className="evidence-pill">{signal.confirmed ? "已确认" : "待确认"}</span>
-              {signal.topics.slice(1).map((item) => (
-                <span className="evidence-pill" key={item}>
-                  {item}
-                </span>
-              ))}
-              {signal.topicMode === "cross_topic" ? <span className="evidence-pill">跨话题</span> : null}
             </div>
             <div className="signal-meta">
               <span>
@@ -659,9 +662,13 @@ function SignalGrid({ signals }: { signals: Signal[] }) {
               <span>
                 采集：{signal.collectionSource} · 更新：{formatDateTime(signal.updatedAt)}
               </span>
-              <a href={signal.url} target="_blank" rel="noreferrer">
-                打开来源
-              </a>
+              {sourceUrl ? (
+                <a href={sourceUrl} target="_blank" rel="noreferrer">
+                  打开来源
+                </a>
+              ) : (
+                <span>来源链接待核验</span>
+              )}
             </div>
           </article>
         );
@@ -884,7 +891,7 @@ function radialNodes(items: string[], cx: number, cy: number, radius: number, st
 }
 
 function company(signal: Signal) {
-  return Array.isArray(signal.companies) && signal.companies.length ? signal.companies : [signal.entity];
+  return companiesForSignal(signal);
 }
 
 function isCompanySignal(signal: Signal) {
@@ -892,11 +899,7 @@ function isCompanySignal(signal: Signal) {
 }
 
 function companyList(signals: Signal[]) {
-  const names = [...new Set(signals.filter(isCompanySignal).flatMap(company))];
-  return [
-    ...preferredCompanyOrder.filter((name) => names.includes(name)),
-    ...names.filter((name) => !preferredCompanyOrder.includes(name)).sort(),
-  ];
+  return sortCompanies(signals.filter(isCompanySignal).flatMap(company));
 }
 
 function countBy<T>(items: T[], fn: (item: T) => string) {

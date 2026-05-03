@@ -111,7 +111,7 @@ git commit -m "Build local AI intelligence dashboard"
 
 ## 话题口径
 
-目标是 MECE：默认一条新闻只归入一个主话题；只有多个话题被平等覆盖时，才标记为跨话题。
+目标是 MECE：一条新闻只归入一个主话题。后续如发现分类不准，再按单条信号纠正。
 
 ### 模型
 

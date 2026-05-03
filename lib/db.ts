@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
+import { companiesForSignal, normalizeCompanyName } from "./companies";
+import { sourceKeyForUrl } from "./sourceUrls";
 import type { CollectionRun, Signal, SignalFilters, Source } from "./types";
 
 const dbPath = process.env.SQLITE_PATH || path.join(process.cwd(), "data", "ai-intel.db");
@@ -77,8 +79,11 @@ function mapRun(row: Record<string, unknown>): CollectionRun {
 export async function listSignals(filters: SignalFilters = {}) {
   const rows = db.prepare("SELECT * FROM signals ORDER BY date DESC, updated_at DESC").all() as Array<Record<string, unknown>>;
   return rows.map(mapSignal).filter((signal) => {
-    if (filters.company && !signal.companies.includes(filters.company)) return false;
-    if (filters.companies?.length && !filters.companies.some((company) => signal.companies.includes(company))) return false;
+    const signalCompanies = companiesForSignal(signal);
+    const filterCompany = filters.company ? normalizeCompanyName(filters.company) : "";
+    const filterCompanies = filters.companies?.map(normalizeCompanyName).filter(Boolean) || [];
+    if (filterCompany && !signalCompanies.includes(filterCompany)) return false;
+    if (filterCompanies.length && !filterCompanies.some((company) => signalCompanies.includes(company))) return false;
     if (filters.topic && !signal.topics.includes(filters.topic)) return false;
     if (filters.topics?.length && !filters.topics.some((topic) => signal.topics.includes(topic))) return false;
     if (filters.startDate && signal.date < filters.startDate) return false;
@@ -125,6 +130,47 @@ export async function findSignalByUrl(url: string) {
   return db.prepare("SELECT id FROM signals WHERE url = ?").get(url) || null;
 }
 
+export async function findSimilarSignal(signal: Omit<Signal, "createdAt" | "updatedAt">) {
+  const incomingSourceKey = sourceKeyForUrl(signal.url);
+  const incomingCompanies = normalizedCompanies(signal.companies, signal.entity);
+  const rows = db.prepare("SELECT id, date, entity, companies, product, title, summary, url FROM signals").all() as Array<Record<string, unknown>>;
+
+  for (const row of rows) {
+    if (incomingSourceKey && sourceKeyForUrl(String(row.url)) === incomingSourceKey) {
+      return { id: String(row.id), reason: "same-source-url" };
+    }
+  }
+
+  for (const row of rows) {
+    const existingCompanies = normalizedCompanies(parseJson<string[]>(row.companies, []), String(row.entity || ""));
+    if (incomingCompanies.length && existingCompanies.length && !incomingCompanies.some((company) => existingCompanies.includes(company))) continue;
+    if (dateDistanceDays(signal.date, String(row.date)) > 3) continue;
+
+    const titleScore = textSimilarity(signal.title, String(row.title));
+    const summaryScore = textSimilarity(signal.summary, String(row.summary));
+    const productScore = textSimilarity(signal.product, String(row.product || ""));
+    const keyOverlap = keywordOverlapScore(
+      `${signal.title} ${signal.summary} ${signal.product}`,
+      `${String(row.title)} ${String(row.summary)} ${String(row.product || "")}`,
+    );
+    const entityOverlap = keywordOverlapScore(
+      `${signal.title} ${signal.product} ${signal.companies.join(" ")}`,
+      `${String(row.title)} ${String(row.product || "")} ${existingCompanies.join(" ")}`,
+    );
+    if (
+      titleScore >= 0.58 ||
+      (titleScore >= 0.46 && summaryScore >= 0.32) ||
+      (productScore >= 0.72 && summaryScore >= 0.45) ||
+      (keyOverlap >= 0.68 && (titleScore >= 0.28 || summaryScore >= 0.24)) ||
+      (entityOverlap >= 0.62 && keyOverlap >= 0.5 && summaryScore >= 0.2)
+    ) {
+      return { id: String(row.id), reason: "similar-title-summary" };
+    }
+  }
+
+  return null;
+}
+
 export async function insertSignal(signal: Omit<Signal, "createdAt" | "updatedAt">) {
   db.prepare(
     `INSERT INTO signals (
@@ -151,6 +197,69 @@ export async function insertSignal(signal: Omit<Signal, "createdAt" | "updatedAt
     JSON.stringify(signal.aiClassification),
     signal.confirmed ? 1 : 0,
   );
+}
+
+function normalizedCompanies(companies: string[], entity: string) {
+  return [...new Set([...(companies || []), entity].map(normalizeCompanyName).filter(Boolean))];
+}
+
+function dateDistanceDays(left: string, right: string) {
+  const leftTime = Date.parse(left);
+  const rightTime = Date.parse(right);
+  if (!Number.isFinite(leftTime) || !Number.isFinite(rightTime)) return Number.POSITIVE_INFINITY;
+  return Math.abs(leftTime - rightTime) / (24 * 60 * 60 * 1000);
+}
+
+function textSimilarity(left: string, right: string) {
+  const leftTokens = bigrams(normalizeForSimilarity(left));
+  const rightTokens = bigrams(normalizeForSimilarity(right));
+  if (!leftTokens.length || !rightTokens.length) return 0;
+  const rightCounts = new Map<string, number>();
+  rightTokens.forEach((token) => rightCounts.set(token, (rightCounts.get(token) || 0) + 1));
+  let overlap = 0;
+  for (const token of leftTokens) {
+    const count = rightCounts.get(token) || 0;
+    if (!count) continue;
+    overlap += 1;
+    rightCounts.set(token, count - 1);
+  }
+  return (2 * overlap) / (leftTokens.length + rightTokens.length);
+}
+
+function normalizeForSimilarity(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[\s\p{P}\p{S}]+/gu, "")
+    .replace(/amazonwebservices|amazonaws|amazonbedrock|aws/g, "amazon")
+    .replace(/googlecloud/g, "google");
+}
+
+function keywordOverlapScore(left: string, right: string) {
+  const leftTokens = keywordTokens(left);
+  const rightTokens = keywordTokens(right);
+  if (!leftTokens.length || !rightTokens.length) return 0;
+  const rightSet = new Set(rightTokens);
+  const overlap = leftTokens.filter((token) => rightSet.has(token)).length;
+  return overlap / Math.min(leftTokens.length, rightTokens.length);
+}
+
+function keywordTokens(value: string) {
+  return [
+    ...new Set(
+      normalizeForSimilarity(value)
+        .replace(/(claude|opus|sonnet|haiku|vertex|google|anthropic|openai|gpt|codex|bedrock|agent|api|token|pricing|price|model|cloud|amazon|aws|managed|models)/g, " $1 ")
+        .split(/[^a-z0-9\u4e00-\u9fa5]+/i)
+        .filter((token) => token.length >= 2)
+        .filter((token) => !["and", "the", "with", "for", "在", "和", "与", "的", "上", "中", "多个", "多款"].includes(token)),
+    ),
+  ];
+}
+
+function bigrams(value: string) {
+  if (value.length <= 1) return value ? [value] : [];
+  const tokens: string[] = [];
+  for (let index = 0; index < value.length - 1; index += 1) tokens.push(value.slice(index, index + 2));
+  return tokens;
 }
 
 export async function createCollectionRun(id: string) {
