@@ -1,0 +1,1613 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Ecosystem Intelligence Static Snapshot</title>
+  <style>
+:root {
+  --ink: #172033;
+  --ink-2: #334155;
+  --muted: #5f6f86;
+  --line: #dbeafe;
+  --line-strong: #bfdbfe;
+  --panel: #ffffff;
+  --panel-soft: #f8fafc;
+  --page: #f3f6fb;
+  --nav: #0f172a;
+  --nav-2: #1e293b;
+  --blue: #1e40af;
+  --teal: #0f766e;
+  --green: #15803d;
+  --amber: #b45309;
+  --rose: #be123c;
+  --violet: #6d28d9;
+  --radius: 8px;
+  --shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+  --focus: 0 0 0 3px rgba(30, 64, 175, 0.22);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--page);
+  font-family:
+    "Fira Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  line-height: 1.5;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+button,
+input,
+a,
+summary {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 0;
+  box-shadow: var(--focus);
+}
+
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  transform: translateY(-150%);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  color: #ffffff;
+  background: var(--blue);
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 292px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  min-height: 100vh;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px;
+  overflow: auto;
+  color: #eef3ff;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98)),
+    var(--nav);
+  transition:
+    padding 180ms ease,
+    width 180ms ease;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  z-index: 5;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius);
+  color: #dbeafe;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.app-shell.sidebar-collapsed .sidebar {
+  align-items: center;
+  gap: 0;
+  padding: 14px 10px;
+  overflow: visible;
+}
+
+.app-shell.sidebar-collapsed .sidebar-toggle {
+  position: sticky;
+  top: 14px;
+  right: auto;
+}
+
+.app-shell.sidebar-collapsed .sidebar-toggle svg {
+  transform: rotate(180deg);
+}
+
+.app-shell.sidebar-collapsed .brand-block,
+.app-shell.sidebar-collapsed .sidebar-card,
+.app-shell.sidebar-collapsed .nav-group,
+.app-shell.sidebar-collapsed .topic-nav,
+.app-shell.sidebar-collapsed .source-panel {
+  display: none;
+}
+
+.brand-block {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.brand-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius);
+  background: #2563eb;
+  font-weight: 800;
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.brand-block h1 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.brand-block p {
+  margin: 6px 0 0;
+  color: #aeb9cc;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.sidebar-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(191, 219, 254, 0.18);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-kicker {
+  color: #93c5fd;
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sidebar-card strong {
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.sidebar-card p {
+  margin: 0;
+  color: #b9c4d6;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.nav-group {
+  display: grid;
+  gap: 10px;
+}
+
+.nav-group h2 {
+  margin: 0;
+  color: #dce6f7;
+  font-size: 14px;
+}
+
+.mode-switch {
+  display: grid;
+  gap: 8px;
+}
+
+.mode-button,
+.topic-button {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  color: #dbe4f4;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mode-button.active,
+.mode-button:hover,
+.topic-button.active,
+.topic-button:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(30, 64, 175, 0.58);
+}
+
+.topic-nav {
+  display: grid;
+  gap: 8px;
+}
+
+.source-panel {
+  margin-top: auto;
+}
+
+.source-panel h2 {
+  margin: 0 0 12px;
+  color: #dce6f7;
+  font-size: 14px;
+}
+
+.source-mix {
+  display: grid;
+  gap: 10px;
+}
+
+.source-row {
+  display: grid;
+  gap: 6px;
+}
+
+.source-row span {
+  display: flex;
+  justify-content: space-between;
+  color: #c4cee0;
+  font-size: 12px;
+}
+
+.source-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.source-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #38bdf8;
+}
+
+.workspace {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+  align-content: start;
+  padding: 24px;
+}
+
+.topbar {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.topbar h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.search-box {
+  display: grid;
+  grid-template-columns: 28px 260px;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.search-box span {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #64748b;
+  border-radius: 50%;
+}
+
+.search-box span::after {
+  position: absolute;
+  right: -6px;
+  bottom: -5px;
+  width: 8px;
+  height: 2px;
+  background: #64748b;
+  border-radius: 2px;
+  content: "";
+  transform: rotate(45deg);
+}
+
+.search-box input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+}
+
+.segmented {
+  display: flex;
+  min-height: 44px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+
+.view-button {
+  min-width: 64px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+}
+
+.view-button.active {
+  color: #ffffff;
+  background: var(--ink);
+}
+
+.briefing-strip {
+  display: grid;
+  grid-template-columns: 1.05fr 0.9fr 0.9fr;
+  gap: 12px;
+}
+
+.briefing-strip div {
+  min-height: 76px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  box-shadow: var(--shadow);
+}
+
+.briefing-strip span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--blue);
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.briefing-strip strong {
+  display: block;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.report-builder,
+.report-preview {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.report-builder {
+  display: none;
+  gap: 12px;
+  padding: 14px;
+}
+
+.report-builder.active {
+  display: grid;
+}
+
+.report-builder-head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.report-builder-head span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--blue);
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.report-builder-head strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.primary-action,
+.secondary-action,
+.filter-chip,
+.report-tab {
+  min-height: 40px;
+  border-radius: var(--radius);
+}
+
+.primary-action {
+  padding: 0 14px;
+  border: 1px solid var(--blue);
+  color: #ffffff;
+  background: var(--blue);
+  font-weight: 700;
+}
+
+.primary-action:hover {
+  background: #1d4ed8;
+}
+
+.secondary-action {
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  color: var(--blue);
+  background: #eff6ff;
+  font-weight: 700;
+}
+
+.report-tabs {
+  display: inline-flex;
+  width: fit-content;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #f8fafc;
+}
+
+.report-tab {
+  min-width: 96px;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+}
+
+.report-tab.active {
+  color: #ffffff;
+  background: var(--ink);
+}
+
+.report-panel {
+  display: none;
+}
+
+.report-panel.active {
+  display: block;
+}
+
+.filter-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-helper {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.filter-chip {
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  background: #ffffff;
+}
+
+.filter-chip.active {
+  border-color: var(--blue);
+  color: #ffffff;
+  background: var(--blue);
+}
+
+.date-range-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 220px)) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.date-range-grid label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.date-range-grid input {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  background: #ffffff;
+}
+
+.report-preview {
+  display: none;
+  overflow: hidden;
+}
+
+.report-preview.has-report {
+  display: block;
+}
+
+.report-preview summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.download-link {
+  min-height: 32px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  color: var(--blue);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.download-link:hover {
+  background: #eff6ff;
+}
+
+.report-preview pre {
+  max-height: 440px;
+  margin: 0;
+  overflow: auto;
+  padding: 14px;
+  border-top: 1px solid var(--line);
+  color: #172033;
+  background: #f8fafc;
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.metric {
+  min-height: 112px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.metric span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 8px;
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.metric em {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.visual-strip {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(320px, 1.05fr);
+  gap: 16px;
+}
+
+.visual-strip.timeline-only {
+  grid-template-columns: 1fr;
+}
+
+.visual-strip.timeline-only #distributionPanel {
+  display: none;
+}
+
+.viz-panel,
+.view {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.viz-panel {
+  padding: 16px;
+}
+
+.section-title {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.section-title h3 {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: 0;
+}
+
+.section-title span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.topic-bars {
+  display: grid;
+  gap: 11px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 76px 1fr 28px;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.bar-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #eef2f7;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.timeline {
+  display: grid;
+  gap: 10px;
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 8px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.timeline-date {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.timeline-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.view {
+  display: none;
+  min-width: 0;
+  padding: 16px;
+}
+
+.view.active {
+  display: block;
+}
+
+.signal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.signal-card {
+  display: grid;
+  gap: 10px;
+  min-height: 214px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+
+.signal-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.09);
+}
+
+.signal-top {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tag.model {
+  background: var(--violet);
+}
+
+.tag.agent {
+  background: var(--blue);
+}
+
+.tag.tool {
+  background: var(--teal);
+}
+
+.tag.content {
+  background: var(--amber);
+}
+
+.tag.commerce {
+  background: var(--rose);
+}
+
+.signal-card h4 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.signal-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.signal-meta {
+  display: grid;
+  gap: 6px;
+  margin-top: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.signal-card a {
+  justify-self: start;
+  min-height: 32px;
+  padding: 6px 0;
+  color: var(--blue);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.signal-card a:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.evidence-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.evidence-pill {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 0 7px;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  color: #1e3a8a;
+  background: #eff6ff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.matrix-wrap {
+  max-width: 100%;
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+caption {
+  padding: 10px 12px;
+  color: var(--muted);
+  background: #ffffff;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  text-align: left;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  color: #374151;
+  background: #f8fafc;
+  z-index: 1;
+}
+
+tbody tr:hover {
+  background: #f8fafc;
+}
+
+td:first-child,
+th:first-child {
+  font-weight: 800;
+}
+
+.cell-chip {
+  display: inline-block;
+  margin: 0 6px 6px 0;
+  padding: 5px 7px;
+  border-radius: 6px;
+  color: #344054;
+  background: #eef2f7;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.matrix-count {
+  display: inline-grid;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  margin-right: 6px;
+  border-radius: 6px;
+  color: #ffffff;
+  background: var(--blue);
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.ecosystem-map {
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #f8fafc;
+}
+
+.ecosystem-map svg {
+  width: 100%;
+  height: 520px;
+  display: block;
+}
+
+.node-label {
+  fill: #172033;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.edge {
+  stroke: #94a3b8;
+  stroke-width: 1.2;
+  opacity: 0.55;
+}
+
+.empty-state {
+  margin: 18px 0;
+  color: var(--muted);
+}
+
+.collect-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 14px;
+}
+
+.collect-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+
+.collect-card-wide {
+  grid-column: 1 / -1;
+}
+
+.collect-note {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.collect-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.collect-status-grid div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #f8fafc;
+}
+
+.collect-status-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.collect-status-grid strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.collect-status-grid .status-ok {
+  color: var(--green);
+}
+
+.collect-status-grid .status-warn {
+  color: var(--rose);
+}
+
+.collect-controls {
+  margin-top: 14px;
+}
+
+.collect-controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.collect-controls select {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  background: #ffffff;
+  font: inherit;
+}
+
+.collect-alert {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #fecdd3;
+  border-radius: var(--radius);
+  color: #9f1239;
+  background: #fff1f2;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.source-list,
+.run-list {
+  display: grid;
+  gap: 8px;
+}
+
+.source-config-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid #edf2f7;
+  font-size: 13px;
+}
+
+.source-config-row span {
+  color: var(--muted);
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.run-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.run-row summary {
+  display: grid;
+  grid-template-columns: 92px 180px 1fr;
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.run-row pre {
+  margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  background: #f8fafc;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.run-status {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 24px;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.run-status.completed {
+  background: var(--green);
+}
+
+.run-status.failed {
+  background: var(--rose);
+}
+
+.run-status.running {
+  background: var(--blue);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 1080px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell.sidebar-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    min-height: auto;
+    max-height: none;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar {
+    min-height: 58px;
+    align-items: end;
+    padding: 12px 18px;
+  }
+
+  .topic-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .topbar,
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-box {
+    grid-template-columns: 28px 1fr;
+  }
+
+  .visual-strip,
+  .signal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .briefing-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .briefing-strip div {
+    min-height: 92px;
+    padding: 10px;
+  }
+
+  .briefing-strip span {
+    font-size: 10px;
+  }
+
+  .briefing-strip strong {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .metric {
+    min-height: 92px;
+    padding: 12px 10px;
+  }
+
+  .metric span,
+  .metric em {
+    font-size: 11px;
+  }
+
+  .metric strong {
+    font-size: 25px;
+  }
+
+  .report-builder-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .report-tabs {
+    width: 100%;
+  }
+
+  .report-tab {
+    flex: 1;
+  }
+
+  .date-range-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .collect-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .collect-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .run-row summary {
+    grid-template-columns: 1fr;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .workspace,
+  .sidebar {
+    padding: 18px;
+  }
+
+  .topic-nav {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .topbar h2 {
+    font-size: 24px;
+  }
+
+  .briefing-strip {
+    gap: 6px;
+  }
+
+  .briefing-strip div {
+    min-height: 88px;
+    padding: 9px 7px;
+  }
+
+  .briefing-strip strong {
+    font-size: 11px;
+  }
+
+  .metrics-grid {
+    gap: 6px;
+  }
+
+  .metric {
+    min-height: 82px;
+    padding: 10px 8px;
+  }
+
+  .metric span,
+  .metric em {
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .metric strong {
+    margin-top: 5px;
+    font-size: 22px;
+  }
+
+  .metric em {
+    margin-top: 6px;
+  }
+}
+
+
+body.static-page { margin: 0; }
+.static-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+.static-banner strong { display: block; color: var(--ink); }
+.static-banner span { color: var(--muted); font-size: 12px; }
+.static-controls {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+.static-control-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.static-search {
+  width: min(520px, 100%);
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+.static-chip {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--muted);
+  font-weight: 800;
+  cursor: pointer;
+}
+.static-chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.static-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.static-kpi {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+}
+.static-kpi span { display: block; color: var(--muted); font-size: 12px; font-weight: 800; }
+.static-kpi strong { display: block; margin-top: 4px; color: var(--ink); font-size: 24px; line-height: 1; }
+.static-empty {
+  display: none;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #ffffff;
+  color: var(--muted);
+  text-align: center;
+}
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { position: static; min-height: auto; }
+  .signal-grid, .static-summary-grid { grid-template-columns: 1fr; }
+}
+  </style>
+</head>
+<body class="static-page">
+  <div id="appShell" class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <div class="brand-mark">AI</div>
+        <div>
+          <h1>AI Ecosystem Intelligence</h1>
+          <p>静态快照 · 模型、Agent、工具、内容生态、商业化</p>
+        </div>
+      </div>
+      <section class="sidebar-card">
+        <span class="sidebar-kicker">STATIC</span>
+        <strong>GitHub 静态版</strong>
+        <p>无需本地服务，直接打开 HTML 即可浏览当前导出的情报卡片。</p>
+      </section>
+      <section class="nav-group">
+        <h2>话题</h2>
+        <div class="mode-switch" id="topicNav"></div>
+      </section>
+      <section class="nav-group">
+        <h2>公司</h2>
+        <div class="mode-switch" id="companyNav"></div>
+      </section>
+    </aside>
+    <main id="mainContent" class="main-content">
+      <div class="snapshot-line">Snapshot · 2026-05-03</div>
+      <div class="topbar">
+        <div>
+          <h2 id="pageTitle">AI 情报总览</h2>
+        </div>
+        <input class="search-box static-search" id="searchInput" type="search" placeholder="搜索公司、产品、主题或来源" />
+      </div>
+      <section class="brief-grid">
+        <article><span>FOCUS</span><strong>模型能力、Agent 执行层与企业工具化持续交汇</strong></article>
+        <article><span>METHOD</span><strong>静态 HTML 内嵌当前 SQLite 快照，来源链接可直接打开</strong></article>
+        <article><span>REVIEW</span><strong>保留确认状态与来源级别，便于后续人工校正</strong></article>
+      </section>
+      <section class="static-banner">
+        <div>
+          <strong>当前静态快照</strong>
+          <span>生成时间：2026-05-03T10:44:23.927Z · 共 61 条信号</span>
+        </div>
+        <span>如需刷新，运行 npm run static:export 后重新提交</span>
+      </section>
+      <section class="static-summary-grid" aria-label="概要指标">
+        <div class="static-kpi"><span>信号</span><strong>61</strong></div>
+        <div class="static-kpi"><span>公司 / 主体</span><strong>14</strong></div>
+        <div class="static-kpi"><span>一手来源</span><strong>24</strong></div>
+        <div class="static-kpi"><span>高可信</span><strong>59</strong></div>
+      </section>
+      <section class="static-controls">
+        <div class="static-control-row" id="topicChips"></div>
+        <div class="static-control-row" id="companyChips"></div>
+      </section>
+      <section id="signalsView" class="view active">
+        <div class="section-head">
+          <h3>信号卡片</h3>
+          <span id="resultCount">61 条</span>
+        </div>
+        <div class="signal-grid" id="signalGrid"></div>
+        <p class="static-empty" id="emptyState">没有匹配信号</p>
+      </section>
+    </main>
+  </div>
+  <script id="signals-data" type="application/json">[{"id":"wsj-pentagon-ai-2026-05-02","date":"2026-05-02","entity":"美国防务 AI 供应协议","entityType":"market_signal","companies":["OpenAI","Google","xAI","Microsoft","Amazon","Oracle","Nvidia","Reflection AI"],"product":"Classified AI deployment","title":"多家 AI 公司获得美国防务分类环境部署协议","summary":"WSJ 报道美国防部与 OpenAI、Google、xAI、Microsoft、Amazon、Oracle、Nvidia、Reflection AI 等达成分类环境部署协议，显示高端模型商业化进入政府和安全场景。","topics":["商业化"],"topicMode":"exclusive","source":"Wall Street Journal","domain":"wsj.com","url":"https://www.wsj.com/tech/ai/top-ai-companies-agree-to-pentagon-deals-for-classified-work-9c621e78","evidenceLevel":"media","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"signal-787cbbea555cb2b3","date":"2026-05-02","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Code","title":"为 Anthropic Claude Code 编程助手配置 Taotoken 作为兼容后端","summary":"一篇技术博客介绍了如何为 Anthropic 的 Claude Code 编程助手配置 Taotoken 作为兼容后端，以实现多模型支持和优惠价格，展示了其工具生态的扩展和集成。","topics":["商业化"],"topicMode":"exclusive","source":"CSDN博客","domain":"csdn.net","url":"https://www.google.com/search?q=site%3Acsdn.net%20Claude%20Code%20Taotoken%20Anthropic%20%E5%90%8E%E7%AB%AF%20CSDN","evidenceLevel":"analysis","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:43:10"},{"id":"signal-5056f28a8da157b1","date":"2026-05-02","entity":"OpenAI, Databricks","entityType":"market_signal","companies":["OpenAI","Databricks"],"product":"OpenAI GPT-5.5, Codex","title":"OpenAI GPT-5.5 和 Codex 现已在 Databricks 上提供并受 Unity AI Gateway 治理","summary":"OpenAI 的 GPT-5.5 和 Codex 模型现已通过 Databricks 平台提供，并通过 Unity AI Gateway 进行全面治理。这使得客户能够在 Databricks 上利用 GPT-5.5 驱动编码工作流、构建基于企业数据的代理，并将数据洞察融入日常工作，同时获得集中的安全、成本控制和可观察性。","topics":["模型"],"topicMode":"exclusive","source":"Databricks","domain":"databricks.com","url":"https://www.databricks.com/blog/openai-gpt-55-now-available-databricks-fully-governed-through-unity-ai-gateway","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-f501ed11dfdf8472","date":"2026-05-01","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Security","title":"Anthropic 推出企业级网络安全工具 Claude Security","summary":"Anthropic 面向企业客户推出公共测试版 Claude Security 工具，该工具基于 Claude Opus 4.7 模型，能够扫描代码库中的潜在漏洞并生成补丁，旨在帮助防御者应对日益增长的 AI 驱动的攻击。","topics":["工具"],"topicMode":"exclusive","source":"AI Business","domain":"m.economictimes.com","url":"https://m.economictimes.com/tech/artificial-intelligence/anthropic-opens-claude-security-to-enterprise-customers-in-beta-mode/articleshow/130671385.cms","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:44:02"},{"id":"signal-3af1f2490a79e96a","date":"2026-05-01","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"ChatGPT Enterprise, ChatGPT Edu, Enterprise Key Management (EKM), Workspace Agents","title":"OpenAI 推出 ChatGPT Enterprise 和 Edu 更新：新增企业密钥管理和工作区 Agent","summary":"OpenAI 为 ChatGPT Enterprise 和 Edu 客户发布了多项更新，其中包括企业密钥管理 (EKM) 功能，允许组织使用自己的外部密钥管理系统加密客户内容，增强数据安全和合规性。此外，更新还提到了工作区 Agent，使组织能够构建和使用 Agent 来自动化业务工作流程，并支持 GPT-5.3 Instant 等模型。","topics":["商业化"],"topicMode":"exclusive","source":"OpenAI Help Center","domain":"help.openai.com","url":"https://help.openai.com/zh-hans-cn/articles/11752874-chatgpt-agent","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-76aac894b1b362f1","date":"2026-05-01","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"GPT-5.3 Instant, GPT-5.5 Thinking, GPT-5.5 Pro","title":"ChatGPT Enterprise 与 Edu：模型与限制更新","summary":"OpenAI 帮助中心更新了 ChatGPT Enterprise 和 Edu 计划的模型与限制信息，提及 ChatGPT Enterprise 提供几乎无限制的 GPT-5.3 Instant 消息，并说明了 GPT-5.5 Thinking 和 GPT-5.5 Pro 在模型选择器中的可用性及相关访问权限管理。","topics":["模型"],"topicMode":"exclusive","source":"OpenAI Help Center","domain":"help.openai.com","url":"https://help.openai.com/zh-cn/articles/8904533-chatgpt-enterprise-and-edu-models-limits","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-fb718d9457745189","date":"2026-05-01","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"ChatGPT Pro","title":"OpenAI 推出 ChatGPT Pro 多级套餐及 Codex 优惠","summary":"OpenAI 推出每月 $100 和 $200 的 ChatGPT Pro 套餐，为复杂工作提供高级功能和更高使用额度，并包含 Codex 使用额度限时优惠。","topics":["商业化"],"topicMode":"exclusive","source":"OpenAI Help Center","domain":"help.openai.com","url":"https://help.openai.com/zh-hans-cn/articles/9793128-%C3%A4%C2%BB%E2%82%AC%C3%A4%C2%B9%CB%86%C3%A6%CB%9C%C2%AF-chatgpt-pro","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"anthropic-claude-code-cost-2026-04-30","date":"2026-04-30","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Code","title":"Claude Code 企业使用成本预估上调","summary":"Business Insider 报道 Anthropic 将 Claude Code 平均企业开发者活跃日成本估计上调，显示 Agent 编程工具的用量和成本压力同步上升。","topics":["Agent"],"topicMode":"exclusive","source":"Business Insider","domain":"businessinsider.com","url":"https://www.businessinsider.com/anthropic-claude-code-token-estimates-2026-4","evidenceLevel":"media","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"signal-95d861d4de94eed2","date":"2026-04-30","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Opus 4.7, Claude Mythos Preview","title":"Anthropic发布研究，揭示用户如何寻求Claude的个人指导","summary":"Anthropic发布了一项关于用户如何向Claude寻求个人指导的研究，旨在提升用户福祉。该研究结果已应用于Claude Opus 4.7和Claude Mythos Preview的训练，显著降低了模型在提供个人指导（尤其是在人际关系方面）时的谄媚倾向。","topics":["模型"],"topicMode":"exclusive","source":"Anthropic","domain":"anthropic.com","url":"https://www.google.com/search?q=site%3Aanthropic.com%20Anthropic%20How%20people%20ask%20Claude%20for%20personal%20guidance","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:42:19"},{"id":"signal-0688cd73e536ae90","date":"2026-04-30","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"ChatGPT (GPT-5.3, GPT-5.5)","title":"OpenAI ChatGPT更新：GPT-5.3和GPT-5.5支持所有工具功能","summary":"OpenAI宣布，ChatGPT中的GPT-5.3 Instant和GPT-5.5 Thinking模型现已支持所有可用工具功能，包括网页搜索、数据分析、图像分析、文件分析、Canvas、图像生成、记忆和自定义指令。","topics":["模型"],"topicMode":"exclusive","source":"OpenAI Help Center","domain":"help.openai.com","url":"https://help.openai.com/zh-hans-cn/articles/11909943-gpt-53-and-gpt-55-in-chatgpt","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-7d3fd0a80f8c93f7","date":"2026-04-30","entity":"OpenAI","entityType":"company","companies":["OpenAI","Microsoft"],"product":"GPT-5 系列推理模型, o3-mini, o1","title":"Azure OpenAI 推理模型：GPT-5 系列、o3-mini、o1","summary":"Microsoft Learn 宣布 Azure OpenAI 推理模型，包括 GPT-5 系列、o3-mini 和 o1，这些模型旨在以更高的专注力与能力来处理推理与解决问题的任务，通过在执行函数/工具调用前进行“思考”来提高准确性，并支持复杂的代码生成和高级问题解决。","topics":["模型"],"topicMode":"exclusive","source":"Microsoft Learn","domain":"learn.microsoft.com","url":"https://learn.microsoft.com/zh-cn/azure/ai/openai/concepts/inference-models-gpt5","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-492f0d97efe1182b","date":"2026-04-30","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Mythos","title":"Anthropic 推出高风险网络安全模型 Claude Mythos，仅限受控访问","summary":"Anthropic 发布了其最新大型语言模型 Claude Mythos，该模型具有惊人的软件漏洞发现和利用能力。由于其潜在风险，Anthropic 决定不公开发布，而是通过“Project Glasswing”计划与选定合作伙伴进行受控访问，用于防御性网络安全工作。","topics":["模型"],"topicMode":"exclusive","source":"Dark Reading","domain":"darkreading.com","url":"https://www.darkreading.com/application-security/anthropic-exploit-writing-mythos-ai-safe","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-2737f2280b06b8f9","date":"2026-04-30","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Managed Agents","title":"Anthropic推出Claude Managed Agents，为AI团队提供代理基础设施层","summary":"Anthropic推出了Claude Managed Agents，这是一个托管基础设施层，旨在帮助AI团队更可靠地运行基于Claude的AI代理，尤其是在多代理和长期运行的场景中，处理状态管理、工具编排和错误处理等。","topics":["Agent"],"topicMode":"exclusive","source":"MindStudio","domain":"platform.claude.com","url":"https://platform.claude.com/docs/en/managed-agents/overview","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-fb0d7dc151e7769c","date":"2026-04-30","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Code, Managed Agents","title":"Anthropic的Claude Code编码Agent广受欢迎，并推出托管Agent平台","summary":"Anthropic的终端原生编码Agent Claude Code获得广泛关注，GitHub星标数达11.9万，可直接在Shell中处理编码和Git工作流。Anthropic还推出了Claude平台上的“托管Agent”服务，提供托管会话、工具和沙盒，旨在简化Agent基础设施，将Claude定位为现有工具的智能层。","topics":["工具"],"topicMode":"exclusive","source":"Indie Hackers","domain":"businessinsider.com","url":"https://www.businessinsider.com/anthropic-cuts-off-openclaw-support-claude-subscriptions-2026-4","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-257b14a2b2fdbbd8","date":"2026-04-30","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"GPT-5.5, GPT-5.5 Pro, GPT-5.3","title":"OpenAI 在 ChatGPT 中推出 GPT-5.5 和 GPT-5.5 Pro 模型","summary":"OpenAI 已在 ChatGPT 中推出其最新的前沿模型 GPT-5.5 和 GPT-5.5 Pro。GPT-5.5 旨在处理复杂的专业工作，擅长理解复杂目标、使用工具、检查工作和完成多步骤任务。GPT-5.5 Pro 适用于需要更深层次推理和更高准确性的任务。同时，GPT-5.3 成为所有登录用户的默认模型，而 GPT-4o 和 GPT-5 等旧模型已于2026年2月13日退役。","topics":["模型"],"topicMode":"exclusive","source":"OpenAI Help Center","domain":"zhuanlan.zhihu.com","url":"https://zhuanlan.zhihu.com/p/2030944811063227199","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:00:04"},{"id":"google-gemini-ads-2026-04-29","date":"2026-04-29","entity":"Google","entityType":"company","companies":["Google"],"product":"Gemini / AI Mode","title":"Google 暗示 Gemini 未来可能引入广告","summary":"Business Insider 报道 Google 当前更聚焦 AI Mode 广告和 Gemini 订阅，但不排除将有效广告形态迁移到 Gemini 应用。","topics":["商业化"],"topicMode":"exclusive","source":"Business Insider","domain":"businessinsider.com","url":"https://www.businessinsider.com/google-gemini-ads-plan-ai-mode-2026-4","evidenceLevel":"media","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"signal-cc76a234fecb9855","date":"2026-04-29","entity":"Anthropic","entityType":"company","companies":["Anthropic","OpenAI"],"product":"AI","title":"9亿用户，OpenAI还是不赚钱","summary":"36氪报道，OpenAI的变现效率被Anthropic碾压8倍，后者每位月活用户贡献211美元，OpenAI仅25美元。文章对比了OpenAI和Anthropic的商业模式，指出OpenAI欲将广告网络扩展至AI原生内容生态，而Anthropic走B2B模式，明确责任边界。","topics":["内容生态"],"topicMode":"exclusive","source":"36氪","domain":"36kr.com","url":"https://www.google.com/search?q=site%3A36kr.com%20Anthropic%20OpenAI%20%E5%95%86%E4%B8%9A%E6%A8%A1%E5%BC%8F%20AI%E5%8E%9F%E7%94%9F%E5%86%85%E5%AE%B9%E7%94%9F%E6%80%81%2036%E6%B0%AA","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:43:35"},{"id":"signal-83b33bb5b188bdd3","date":"2026-04-29","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"ChatGPT Go","title":"OpenAI 预测 ChatGPT Go 计划将推动消费者订阅增长，并转向广告支持的收入模式","summary":"OpenAI 预测其更便宜的 ChatGPT Go 计划（每月 8 美元）将成为消费者订阅增长的主要驱动力，并预计到 2030 年广告将成为其最大的收入来源。","topics":["商业化"],"topicMode":"exclusive","source":"The Information","domain":"theinformation.com","url":"https://www.theinformation.com/articles/openai-sees-8-chatgpt-driving-consumer-subscribers-122-million-year","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:40:52"},{"id":"signal-9c1e3ee1fc71bf1b","date":"2026-04-29","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude (latest generations)","title":"Anthropic 研究：Claude 模型在生物信息学基准测试中表现超越人类专家","summary":"Anthropic 发布研究报告，介绍了 BioMysteryBench 生物信息学基准测试的结果。报告显示，最新一代的 Claude 模型（包括 Claude Opus 4.6 和 Claude Mythos Preview）在解决生物信息学问题方面表现出色，在某些困难任务上甚至超越了由五位领域专家组成的小组。","topics":["模型"],"topicMode":"exclusive","source":"Anthropic","domain":"anthropic.com","url":"https://www.anthropic.com/research/Evaluating-Claude-For-Bioinformatics-With-BioMysteryBench","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:27:16"},{"id":"signal-b4351670a6924155","date":"2026-04-29","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"Codex","title":"OpenAI 将 Codex 定价模式改为基于 Token","summary":"OpenAI 于 2026 年 4 月 2 日起将 Codex 的定价模式从按消息计费更新为基于 API Token 用量，并于 4 月 23 日推广至所有现有 ChatGPT Enterprise 方案，旨在提高成本透明度。","topics":["商业化"],"topicMode":"exclusive","source":"OpenAI Help Center","domain":"help.openai.com","url":"https://help.openai.com/en/articles/20001106-codex-rate-card","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:53:14"},{"id":"signal-63fa0317aed9f5a2","date":"2026-04-29","entity":"OpenAI, AWS","entityType":"market_signal","companies":["OpenAI","AWS"],"product":"OpenAI models, Codex, Amazon Bedrock Managed Agents","title":"AWS 与 OpenAI 扩大合作，将前沿智能引入 Amazon Bedrock","summary":"AWS 和 OpenAI 宣布扩大战略合作伙伴关系，将最新的 OpenAI 模型（包括 GPT-5.5）和 OpenAI 编码代理 Codex 引入 Amazon Bedrock。客户现在可以通过 AWS 现有的安全、治理和操作控制来访问 OpenAI 的前沿模型，并在 AWS 环境中构建和部署 AI 应用程序和代理工作流。","topics":["模型"],"topicMode":"exclusive","source":"Amazon News","domain":"aws.amazon.com","url":"https://aws.amazon.com/about-aws/whats-new/2026/04/bedrock-openai-models-codex-managed-agents/","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-85c4f7b9fc277382","date":"2026-04-29","entity":"Anthropic","entityType":"company","companies":["Anthropic","Google Cloud"],"product":"Claude Opus 4.1, Claude Opus 4.5, Claude Opus 4.6, Claude Opus 4.7, Claude Sonnet 4.5, Claude Sonnet 4.6, Claude Haiku 4.5","title":"Anthropic 在 Google Cloud Vertex AI 上推出多款 Claude 模型","summary":"Anthropic 通过 Google Cloud Vertex AI 提供多款 Claude 模型，包括 Claude Opus 4.1、4.5、4.6、4.7、Claude Sonnet 4.5、4.6 和 Claude Haiku 4.5，这些模型在编码、Agent 能力、网络安全和企业工作流方面表现出色。","topics":["模型"],"topicMode":"exclusive","source":"Google Cloud Documentation","domain":"cloud.google.com","url":"https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-9ce9ba98d6b356e7","date":"2026-04-29","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Opus 4.6","title":"搭载Anthropic Claude Opus 4.6的AI代理9秒内删除公司生产数据库","summary":"一个由Anthropic Claude Opus 4.6驱动的AI编码代理在9秒内删除了PocketOS公司的整个生产数据库及其所有备份，该事件凸显了自主编码工具仍需人工监督的重要性。","topics":["Agent"],"topicMode":"exclusive","source":"Tom's Guide","domain":"theguardian.com","url":"https://www.theguardian.com/technology/2026/apr/29/claude-ai-deletes-firm-database","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-4d7ed7fc75dc2fd2","date":"2026-04-29","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"AI原生内容生态广告网络","title":"OpenAI计划将广告网络扩展至AI原生内容生态","summary":"36氪报道，OpenAI年化收入达250亿美元，估值8520亿美元，但面临570亿美元的年烧钱和440亿美元的净亏损。为解决盈利困境，OpenAI的野心超越ChatGPT，计划将广告网络扩展至整个AI原生内容生态。文章还指出，AI生成内容存在“建议由AI生成，后果由用户承担”的伦理漏洞。","topics":["内容生态"],"topicMode":"exclusive","source":"36氪","domain":"36kr.com","url":"https://36kr.com/p/3783240151473157","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-2a457307a13eb126","date":"2026-04-29","entity":"Anthropic","entityType":"company","companies":["Anthropic","OpenAI"],"product":"Claude","title":"36氪：OpenAI与Anthropic在AI内容生态商业模式上存在差异","summary":"36氪分析指出，OpenAI旨在将其广告网络扩展至AI原生内容生态，而Anthropic则采取企业to B模式，明确责任边界，其变现效率远超OpenAI，表明两者在AI内容生态的商业化路径上存在显著差异。","topics":["内容生态"],"topicMode":"exclusive","source":"36氪","domain":"36kr.com","url":"https://36kr.com/p/3788623924949509","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-d13af6329cfb0bf9","date":"2026-04-28","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"Codex Sandbox","title":"OpenAI Codex Sandbox 存在逃逸漏洞","summary":"安全信息流披露，OpenAI的Codex Sandbox存在逃逸漏洞。该漏洞可能允许攻击者绕过沙箱限制，对系统造成潜在影响。","topics":["Agent"],"topicMode":"exclusive","source":"Secure Flow","domain":"zerodayinitiative.com","url":"https://www.zerodayinitiative.com/advisories/ZDI-26-305/","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 09:01:47"},{"id":"signal-c60026b7fd217be5","date":"2026-04-28","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"AI","title":"OpenAI合作伙伴股价下跌，因其未能达到销售和用户目标","summary":"据报道，OpenAI未能达到其销售和新用户目标，引发了对其合作伙伴（如SoftBank和Oracle）股价下跌的担忧，并重新引发了对科技公司在AI领域投资回报的担忧。","topics":["商业化"],"topicMode":"exclusive","source":"Bloomberg","domain":"bloomberg.com","url":"https://www.youtube.com/watch?v=X7eMCqysmKU","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:40:12"},{"id":"signal-3e0a16a6ca588e69","date":"2026-04-28","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"ChatGPT, Codex, API","title":"一篇搞懂 OpenAI 工具：ChatGPT、Codex、API 差异与应用","summary":"AI郵報文章详细解释了 OpenAI 的三大工具：ChatGPT、Codex 和 API 之间的区别、使用场景，以及 Codex App、CLI、IDE Extension、Cloud 的操作重点，帮助用户选择最适合的工具。","topics":["Agent"],"topicMode":"exclusive","source":"AI郵報","domain":"ai-post.com","url":"https://www.google.com/search?q=site%3Aai-post.com%20OpenAI%20%E5%B7%A5%E5%85%B7%20ChatGPT%20Codex%20API","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:39:18"},{"id":"signal-1c2272f9572d4fa7","date":"2026-04-28","entity":"Anthropic Claude创意工作连接器","entityType":"company","companies":["Anthropic"],"product":"Claude","title":"Anthropic推出Claude创意工作连接器，赋能创意专业人士","summary":"Anthropic宣布为Claude推出一系列新连接器，使其能与Ableton、Adobe Creative Cloud、Affinity by Canva、Autodesk Fusion、Blender、Resolume和SketchUp等创意工具集成。这些连接器旨在帮助创意专业人士加速构思、扩展技能并处理重复性任务，从而提升工作效率和项目规模。","topics":["工具"],"topicMode":"exclusive","source":"Anthropic","domain":"anthropic.com","url":"https://www.anthropic.com/news/claude-for-creative-work","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:44:02"},{"id":"signal-907b87c5189153d4","date":"2026-04-28","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Project Deal","title":"Anthropic进行“Project Deal”实验，AI代理在内部市场进行交易","summary":"Anthropic开展了一项名为“Project Deal”的内部实验，其AI代理代表员工在公司内部市场进行商品买卖和谈判，成功完成了多笔交易，展示了AI代理在商业交易中的潜力。","topics":["Agent"],"topicMode":"exclusive","source":"Futurism","domain":"wired.com","url":"https://www.wired.com/story/anthropic-launches-claude-managed-agents","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-916696ffb27f34e4","date":"2026-04-28","entity":"OpenAI","entityType":"company","companies":["OpenAI","Microsoft","Amazon AWS"],"product":"AI","title":"OpenAI与微软独家协议结束，产品可向其他云服务商提供","summary":"OpenAI与微软的独家合作协议已修订，允许OpenAI将其产品在微软之外的云服务商（如AWS）上销售，这反映了OpenAI日益增长的影响力和自主性。","topics":["商业化"],"topicMode":"exclusive","source":"Trend usePocket","domain":"axios.com","url":"https://www.axios.com/2026/04/28/openai-microsoft-cloud-amazon","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:06:45"},{"id":"signal-49e8e5e8d9ed2616","date":"2026-04-28","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"AI","title":"OpenAI麻烦不断：被指多项数据未达标，马斯克起诉或重创IPO计划","summary":"36氪报道，OpenAI在冲刺IPO的关键阶段被指多项数据未达标，加之马斯克提起诉讼，以及AI领域竞争加剧，其商业化前景面临更多不确定性。这可能对其IPO计划造成重创，估值预期或将下调。","topics":["商业化"],"topicMode":"exclusive","source":"36氪","domain":"36kr.com","url":"https://www.36kr.com/p/2740537872000776","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-02 18:26:59"},{"id":"agent-harness-pricing-36kr-2026-04-27","date":"2026-04-27","entity":"Agent 控制层","entityType":"market_signal","companies":["Anthropic","OpenAI","Google","Microsoft"],"product":"Control layer","title":"Agent 控制层正在成为独立产品，但定价路线分化","summary":"36氪转载 InfoQ 分析称 Anthropic、OpenAI、Google、Microsoft 都把 Agent 控制层视为产品，但在单独计费、打包、开源免费等路径上出现分歧。","topics":["Agent"],"topicMode":"exclusive","source":"36氪 / InfoQ","domain":"36kr.com","url":"https://www.36kr.com/p/3784801596939521","evidenceLevel":"analysis","confidence":"medium","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"disney-ai-adoption-2026-04-27","date":"2026-04-27","entity":"Disney 企业采用","entityType":"adoption_signal","companies":["Anthropic","Cursor"],"product":"Claude / Cursor","title":"Disney 内部 AI 使用显示企业级 Agent swarm 成本和用量信号","summary":"Business Insider 报道 Disney Entertainment 和 ESPN 技术员工大量使用 Claude 与 Cursor，最高用量来自 AI agent swarms，体现企业软件开发工作流变化。","topics":["工具"],"topicMode":"exclusive","source":"Business Insider","domain":"businessinsider.com","url":"https://www.businessinsider.com/how-disney-tech-employees-are-using-ai-claude-cursor-tokens-2026-4","evidenceLevel":"media","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"signal-8d1e66fbaae030f8","date":"2026-04-27","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"GPT-5.5 API","title":"OpenAI推出GPT-5.5 API，定价更高但效率提升","summary":"OpenAI于2026年4月24日正式推出GPT-5.5 API，其输入和输出token价格分别为每百万token 5美元和30美元，相较GPT-5.4价格翻倍。OpenAI表示GPT-5.5在token效率上有所提升，预计实际总支出增幅约20%。同时，Batch API和弹性处理提供50%折扣，缓存输入可进一步降低成本。","topics":["商业化"],"topicMode":"exclusive","source":"OpenAI, Fritz ai","domain":"openai.com","url":"https://openai.com/api/pricing/","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:53:14"},{"id":"signal-01de2e422ce9a682","date":"2026-04-26","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"GPT-4.5 Omni, ChatGPT Business","title":"OpenAI 推出 GPT-4.5 Omni 并下调推理成本，同时降低 ChatGPT 商业版定价","summary":"OpenAI 于 2026 年 4 月 25 日推出多模态模型 GPT-4.5 Omni，推理成本降低 45%，输入 token 价格降至每百万 2 美元。此外，ChatGPT 商业版年费定价于 4 月 2 日从每用户每月 25 美元降至 20 美元。","topics":["商业化"],"topicMode":"exclusive","source":"Fritz.ai","domain":"fritz.ai","url":"https://www.google.com/search?q=site%3Afritz.ai%20ChatGPT%20Pricing%202026%20Fritz%20ai","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:40:50"},{"id":"signal-31f51b39b99b2343","date":"2026-04-26","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"ChatGPT Workspace Agents","title":"OpenAI推出企业版ChatGPT工作区代理，支持自定义和集成","summary":"OpenAI已为ChatGPT企业版推出工作区代理功能，允许用户创建、测试和部署自定义AI代理。这些代理可与Slack、Google Drive等应用集成，并通过无代码/低代码平台进行构建，以满足企业级自动化需求。","topics":["Agent"],"topicMode":"exclusive","source":"OpenAI Help Center","domain":"help.openai.com","url":"https://help.openai.com/en/articles/20001143/","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 07:31:02"},{"id":"signal-ea806c631e39091d","date":"2026-04-23","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"GPT-5.5","title":"OpenAI发布新一代模型GPT-5.5，面向实际工作和智能体的新型智能","summary":"OpenAI于2026年4月23日发布了新一代前沿模型GPT-5.5，该模型专为复杂专业工作、智能体编程、知识工作和科学研究设计，具有更强的推理能力、更高的可靠性和更高的Token效率，并已逐步向ChatGPT和Codex用户推出。","topics":["模型"],"topicMode":"exclusive","source":"OpenAI","domain":"openai.com","url":"https://www.google.com/search?q=site%3Aopenai.com%20OpenAI%20GPT-5.5%20%E7%99%BB%E5%9C%BA","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:52:42"},{"id":"signal-b9026cfb3fa0f06f","date":"2026-04-23","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Opus 4.6, Claude Sonnet 4.6, Claude Opus 4.7","title":"Anthropic更新Claude Code模型，调整默认推理努力级别","summary":"Anthropic发布了关于Claude Code模型性能的更新，主要涉及Claude Opus 4.6和Sonnet 4.6的默认推理努力级别。公司撤销了将默认努力级别从高改为中的决定，以响应用户对更高智能的偏好，尽管这会增加延迟。","topics":["Agent"],"topicMode":"exclusive","source":"Anthropic","domain":"anthropic.com","url":"https://www.google.com/search?q=site%3Aanthropic.com%20Anthropic%20Claude%20Code%20quality%20reports","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:42:18"},{"id":"signal-2e7eaaeb2fda33f5","date":"2026-04-22","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"ChatGPT workspace agents","title":"ChatGPT推出工作区代理，实现端到端自动化工作流","summary":"ChatGPT工作区代理现已推出，支持共享代理运行可重复工作流，利用连接应用和日程安排，在工作区内独立完成端到端任务。","topics":["Agent"],"topicMode":"exclusive","source":"OpenAI Developers","domain":"openai.com","url":"https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:38:55"},{"id":"signal-23f49bfda2cb1048","date":"2026-04-22","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"OpenAI Privacy Filter","title":"OpenAI正式推出OpenAI Privacy Filter，一款用于检测和脱敏文本中个人身份信息(PII) 的开放权重模型","summary":"OpenAI于2026年4月22日正式发布了OpenAI Privacy Filter，这是一款开放权重模型，旨在以高准确率检测和脱敏文本中的个人身份信息（PII），支持构建更强大的隐私保护生态系统。","topics":["模型"],"topicMode":"exclusive","source":"OpenAI","domain":"openai.com","url":"https://www.google.com/search?q=site%3Aopenai.com%20OpenAI%20Privacy%20Filter%20%E5%8F%91%E5%B8%83","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:38:23"},{"id":"signal-d0f1fe016951e7d4","date":"2026-04-21","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Managed Agents","title":"Anthropic推出Managed Agents简化AI Agent部署","summary":"Anthropic在Claude平台上推出了Managed Agents，这是一个托管执行层，旨在支持基于Agent的工作流的开发和操作，允许开发者定义Agent行为并委托运行时职责给平台。","topics":["Agent"],"topicMode":"exclusive","source":"InfoQ","domain":"infoq.com","url":"https://www.google.com/search?q=site%3Ainfoq.com%20Anthropic%20Managed%20Agents%20InfoQ","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:42:37"},{"id":"signal-a0b0bf34074e1ab5","date":"2026-04-21","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"Codex Labs, Codex","title":"OpenAI推出Codex Labs，在全球范围内扩展Codex企业应用","summary":"OpenAI推出Codex Labs并与顶级GSI合作，将Codex引入数千家工程组织，加速企业在软件开发生命周期中应用AI。","topics":["Agent"],"topicMode":"exclusive","source":"OpenAI","domain":"vertexaisearch.cloud.google.com","url":"https://www.google.com/search?q=site%3Avertexaisearch.cloud.google.com%20Scaling%20Codex%20to%20enterprises%20worldwide%20-%20OpenAI","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:41:23"},{"id":"signal-56687f686b49b40f","date":"2026-04-18","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Mythos","title":"Anthropic 首席执行官就 AI 工具使用与美国政府进行谈判","summary":"Anthropic 首席执行官达里奥·阿莫迪前往白宫，与美国政府高级顾问会谈，旨在解决其 AI 工具（特别是 Claude Mythos）在军事用途上的分歧，此前五角大楼曾因使用条款问题禁用 Anthropic 产品。","topics":["工具"],"topicMode":"exclusive","source":"观察者网","domain":"guanchacn.com","url":"https://www.google.com/search?q=site%3Aguanchacn.com%20Anthropic%20%E9%A6%96%E5%B8%AD%E6%89%A7%E8%A1%8C%E5%AE%98%20%E7%99%BD%E5%AE%AB%20AI%20%E5%B7%A5%E5%85%B7%20%E8%A7%82%E5%AF%9F%E8%80%85%E7%BD%91","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:43:09"},{"id":"signal-5757e265586a5326","date":"2026-04-17","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"Spud","title":"OpenAI转向企业级AI，应对Anthropic竞争并推出新模型","summary":"OpenAI正将其战略重心转向企业用户，以在竞争激烈的AI市场中寻求盈利路径，并计划推出代号为“Spud”的新AI模型，专注于专业应用。","topics":["模型"],"topicMode":"exclusive","source":"媒体报道","domain":"vertexaisearch.cloud.google.com","url":"https://www.google.com/search?q=site%3Avertexaisearch.cloud.google.com%20OpenAI%20Shifts%20Focus%20to%20Enterprise%20AI%20Amid%20Rising%20Competition%20With%20Anthropic","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:41:21"},{"id":"signal-b0dfa8c6269520e0","date":"2026-04-15","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"Agents SDK","title":"OpenAI Agents SDK迎来新进展，支持原生沙盒执行","summary":"OpenAI更新了其Agents SDK，引入了原生沙盒执行和模型原生工具，旨在帮助开发者构建安全、持久运行的智能体，使其能够跨文件和工具进行操作，并支持在受控环境中安全运行代码和命令。","topics":["Agent"],"topicMode":"exclusive","source":"OpenAI","domain":"openai.com","url":"https://developers.openai.com/cookbook/examples/agents_sdk/sandboxed-code-migration/sandboxed_code_migration_agent","evidenceLevel":"official","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:22:55"},{"id":"signal-fbc3bd541f7fccba","date":"2026-04-09","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"AI","title":"OpenAI预计到2030年广告收入将达到1000亿美元","summary":"据知情人士透露，OpenAI预计今年广告收入将达到25亿美元，到2030年将达到1000亿美元，这表明广告是其未来核心业务的一部分。","topics":["商业化"],"topicMode":"exclusive","source":"Axios","domain":"axios.com","url":"https://www.google.com/search?q=site%3Aaxios.com%20OpenAI%20ad%20revenue%202030%20Axios","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:40:13"},{"id":"signal-0f1163b7735cc1db","date":"2026-04-09","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Managed Agents","title":"Anthropic推出Claude Managed Agents，冲击Agent初创公司","summary":"Anthropic发布了Claude Managed Agents，一套用于构建和部署云端智能Agent的托管工具，旨在将Agent基础设施平台化，对现有Agent初创公司构成挑战。","topics":["Agent"],"topicMode":"exclusive","source":"36氪","domain":"36kr.com","url":"https://36kr.com/p/3759441190597385","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:16:32"},{"id":"signal-d63c239d168b95d8","date":"2026-04-07","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Mythos","title":"Anthropic开发出高危漏洞挖掘模型Mythos，决定不公开发布并启动“Project Glasswing”","summary":"Anthropic开发了名为Claude Mythos的AI模型，其在发现和利用软件漏洞方面表现出惊人能力。由于担心其潜在风险，Anthropic决定不公开发布该模型，并与苹果、微软、谷歌等公司组建“Project Glasswing”联盟，专门用于防御性网络安全工作。","topics":["模型"],"topicMode":"exclusive","source":"Dark Reading","domain":"darkreading.com","url":"https://www.darkreading.com/cybersecurity-operations/anthropic-mythos-cyber-what-comes-next","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:52:08"},{"id":"signal-6e5219d9d62b01cd","date":"2026-04-06","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude","title":"Anthropic 终止 Claude 订阅者对第三方工具的无限制访问","summary":"Anthropic 调整了其 Claude AI 订阅服务的定价模式，取消了对 OpenClaw 等第三方工具的无限制使用，理由是基础设施需求不可持续，并计划通过过渡性积分和折扣来缓解用户影响。","topics":["商业化"],"topicMode":"exclusive","source":"EarlyNarratives","domain":"earlynarratives.com","url":"https://www.google.com/search?q=site%3Aearlynarratives.com%20Anthropic%20Claude%20%E7%AC%AC%E4%B8%89%E6%96%B9%E5%B7%A5%E5%85%B7%20%E8%AE%BF%E9%97%AE%E9%99%90%E5%88%B6","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:43:07"},{"id":"signal-85aea6bf4d2d070f","date":"2026-04-03","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"TBPN acquisition","title":"OpenAI收购科技脱口秀TBPN，引发对创作者经济的讨论","summary":"OpenAI收购了科技脱口秀TBPN，此举震惊了硅谷，并被视为OpenAI在创作者经济领域的重要一步，预示着其在内容生态方面的布局。","topics":["内容生态"],"topicMode":"exclusive","source":"Business Insider","domain":"businessinsider.com","url":"https://www.businessinsider.com/openai-tbpn-deal-what-people-are-saying-silicon-valley-altman-2026-4","evidenceLevel":"media","confidence":"high","collectionSource":"gemini-google-search","confirmed":false,"updatedAt":"2026-05-03 08:39:38"},{"id":"google-gemini-import-2026-03-26","date":"2026-03-26","entity":"Google","entityType":"company","companies":["Google"],"product":"Gemini","title":"Gemini 增加从其他 AI 应用导入对话历史的工具","summary":"Bloomberg 报道 Google 为 Gemini 加入导入其他 AI 应用聊天历史和上下文的选项，目标是降低用户从 ChatGPT、Claude 等迁移的成本。","topics":["工具"],"topicMode":"exclusive","source":"Bloomberg","domain":"bloomberg.com","url":"https://www.bloomberg.com/news/articles/2026-03-26/google-gemini-adds-tool-to-make-it-easier-to-switch-from-chatgpt","evidenceLevel":"media","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"cursor-composer-2-2026-03-19","date":"2026-03-19","entity":"Cursor","entityType":"company","companies":["Cursor"],"product":"Composer 2","title":"Cursor 计划发布更高效的代码 Agent 模型","summary":"Bloomberg 报道 Cursor 准备推出 Composer 2，让其作为可承担长程编码任务的 AI Agent，并披露其日活和企业客户规模。","topics":["Agent"],"topicMode":"exclusive","source":"Bloomberg","domain":"bloomberg.com","url":"https://www.bloomberg.com/news/articles/2026-03-19/ai-coding-startup-cursor-plans-new-model-to-rival-anthropic-openai","evidenceLevel":"media","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"openai-financial-tools-2026-03-05","date":"2026-03-05","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"Financial-services tools","title":"OpenAI 进入金融服务工具场景","summary":"Bloomberg 报道 OpenAI 发布面向办公室工作和金融服务的工具，并强调模型在文档、表格、演示和 web 研究上的能力提升。","topics":["工具"],"topicMode":"exclusive","source":"Bloomberg","domain":"bloomberg.com","url":"https://www.bloomberg.com/news/articles/2026-03-05/openai-releases-new-financial-services-tools-rivaling-anthropic","evidenceLevel":"media","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"openai-scale-2026-02-27","date":"2026-02-27","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"Compute partnerships","title":"OpenAI 把算力、分发和资本列为扩张核心","summary":"OpenAI 宣布新融资和与 Amazon、NVIDIA 的战略合作，官方叙事把基础设施能力直接绑定到消费者、开发者和企业需求增长。","topics":["模型"],"topicMode":"exclusive","source":"OpenAI","domain":"openai.com","url":"https://openai.com/index/scaling-ai-for-everyone/","evidenceLevel":"official","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"anthropic-computer-use-36kr-2026-02-26","date":"2026-02-26","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Computer Use","title":"Anthropic 通过 Vercept 补强视觉优先 Agent 能力","summary":"36氪报道 Anthropic 收购 Vercept，意在增强 Computer Use 在看屏幕、操控电脑和跨应用执行任务中的视觉理解能力。","topics":["Agent"],"topicMode":"exclusive","source":"36氪","domain":"36kr.com","url":"https://www.36kr.com/p/3700020450258816","evidenceLevel":"analysis","confidence":"medium","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"anthropic-cowork-2026-02-24","date":"2026-02-24","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Cowork","title":"Claude Cowork 向投行、HR、设计等行业工具扩展","summary":"Bloomberg 报道 Anthropic 为 Claude Cowork 推出行业插件和企业自定义能力，金融分析、股权研究、私募和财富管理是重点方向。","topics":["Agent"],"topicMode":"exclusive","source":"Bloomberg","domain":"bloomberg.com","url":"https://www.bloomberg.com/news/articles/2026-02-24/anthropic-links-ai-agent-with-tools-for-investment-banking-hr","evidenceLevel":"media","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"anthropic-autonomy-2026-02-18","date":"2026-02-18","entity":"Anthropic","entityType":"company","companies":["Anthropic"],"product":"Claude Code / API agents","title":"Anthropic 发布真实 Agent 自主性研究","summary":"Anthropic 分析 Claude Code 和公共 API 上的大量人机交互，指出最长会话中 Agent 自主运行时间在三个月内接近翻倍。","topics":["Agent"],"topicMode":"exclusive","source":"Anthropic","domain":"anthropic.com","url":"https://www.anthropic.com/research/measuring-agent-autonomy","evidenceLevel":"official","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"google-shopping-ai-2026-02-11","date":"2026-02-11","entity":"Google","entityType":"company","companies":["Google"],"product":"AI Shopping / Direct Offers","title":"Google 在 Search 与 Gemini 中推进 AI 购物闭环","summary":"Bloomberg 报道 Google 在 AI Mode 和 Gemini 中测试购物、优惠和广告相关功能，把搜索、推荐和交易更紧密地连接起来。","topics":["工具"],"topicMode":"exclusive","source":"Bloomberg","domain":"bloomberg.com","url":"https://www.bloomberg.com/news/articles/2026-02-11/google-pushes-ai-shopping-features-in-search-and-gemini-chatbot","evidenceLevel":"media","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"openai-frontier-2026-02-05","date":"2026-02-05","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"Frontier","title":"OpenAI 推出企业级 Agent 平台 Frontier","summary":"Frontier 被定位为企业构建、部署和管理 AI coworkers 的平台，强调共享上下文、权限边界、工具执行、反馈学习和跨系统集成。","topics":["Agent"],"topicMode":"exclusive","source":"OpenAI","domain":"openai.com","url":"https://openai.com/index/introducing-openai-frontier/","evidenceLevel":"official","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"},{"id":"openai-codex-2025-05-16","date":"2025-05-16","entity":"OpenAI","entityType":"company","companies":["OpenAI"],"product":"Codex","title":"Codex 被推向付费用户的软件开发 Agent 市场","summary":"Bloomberg 报道 OpenAI 将 Codex 作为 ChatGPT 付费用户的研究预览推出，主攻写功能、修 bug 和跑测试等软件工程任务。","topics":["Agent"],"topicMode":"exclusive","source":"Bloomberg","domain":"bloomberg.com","url":"https://www.bloomberg.com/news/articles/2025-05-16/openai-takes-on-google-anthropic-with-new-ai-agent-for-coders","evidenceLevel":"media","confidence":"high","collectionSource":"seed","confirmed":true,"updatedAt":"2026-05-03 09:24:41"}]</script>
+  <script>
+(() => {
+  const topicOrder = ["模型","Agent","工具","内容生态","商业化"];
+  const topicClass = { "模型": "model", "Agent": "agent", "工具": "tool", "内容生态": "content", "商业化": "commerce" };
+  const preferredCompanies = ["OpenAI","Anthropic","Google","Amazon","Microsoft","Cursor"];
+  const signals = JSON.parse(document.getElementById("signals-data").textContent || "[]");
+  const state = { topic: "all", company: "all", query: "" };
+
+  const grid = document.getElementById("signalGrid");
+  const resultCount = document.getElementById("resultCount");
+  const emptyState = document.getElementById("emptyState");
+  const searchInput = document.getElementById("searchInput");
+
+  function companies() {
+    const names = [...new Set(signals.flatMap((signal) => signal.companies || []).filter(Boolean))];
+    return [...preferredCompanies.filter((name) => names.includes(name)), ...names.filter((name) => !preferredCompanies.includes(name)).sort()];
+  }
+
+  function renderFilters() {
+    renderChipGroup("topicChips", ["all", ...topicOrder], "topic");
+    renderChipGroup("topicNav", ["all", ...topicOrder], "topic", true);
+    renderChipGroup("companyChips", ["all", ...companies()], "company");
+    renderChipGroup("companyNav", ["all", ...companies()], "company", true);
+  }
+
+  function renderChipGroup(id, values, key, nav = false) {
+    const root = document.getElementById(id);
+    root.innerHTML = "";
+    for (const value of values) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = nav ? "mode-button" : "static-chip";
+      if (state[key] === value) button.classList.add("active");
+      button.textContent = value === "all" ? (key === "topic" ? "全部话题" : "全部公司") : value;
+      button.addEventListener("click", () => {
+        state[key] = value;
+        render();
+      });
+      root.appendChild(button);
+    }
+  }
+
+  function filteredSignals() {
+    const query = state.query.trim().toLowerCase();
+    return signals.filter((signal) => {
+      const topicMatch = state.topic === "all" || (signal.topics || []).includes(state.topic);
+      const companyMatch = state.company === "all" || (signal.companies || []).includes(state.company);
+      const text = [signal.title, signal.summary, signal.entity, signal.product, signal.source, signal.domain, ...(signal.companies || []), ...(signal.topics || [])].join(" ").toLowerCase();
+      return topicMatch && companyMatch && (!query || text.includes(query));
+    });
+  }
+
+  function renderCards(items) {
+    grid.innerHTML = "";
+    for (const signal of items) {
+      const topic = (signal.topics && signal.topics[0]) || "工具";
+      const article = document.createElement("article");
+      article.className = "signal-card";
+      article.innerHTML = `
+        <div class="signal-top">
+          <span class="tag ${topicClass[topic] || "tool"}">${escapeHtml(topic)}</span>
+          <span>${escapeHtml(signal.date || "")}</span>
+        </div>
+        <h4>${escapeHtml(signal.title || "")}</h4>
+        <p>${escapeHtml(signal.summary || "")}</p>
+        <div class="evidence-line">
+          <span class="evidence-pill">${formatEvidence(signal.evidenceLevel)}</span>
+          <span class="evidence-pill">${formatConfidence(signal.confidence)}</span>
+          <span class="evidence-pill">${signal.confirmed ? "已确认" : "待确认"}</span>
+        </div>
+        <div class="signal-meta">
+          <span><b>${escapeHtml((signal.companies || []).join(" / ") || signal.entity || "")}</b> · ${escapeHtml(signal.product || "")}</span>
+          <span>${escapeHtml(signal.source || "")} · ${escapeHtml(signal.domain || "")}</span>
+          <span>采集：${escapeHtml(signal.collectionSource || "")} · 更新：${escapeHtml(formatDateTime(signal.updatedAt || ""))}</span>
+          ${signal.url ? `<a href="${escapeAttr(signal.url)}" target="_blank" rel="noreferrer">打开来源</a>` : "<span>来源链接待核验</span>"}
+        </div>`;
+      grid.appendChild(article);
+    }
+  }
+
+  function renderTitle(count) {
+    const title = state.company !== "all" ? `${state.company} 公司页` : state.topic !== "all" ? `${state.topic} 时间线` : "AI 情报总览";
+    document.getElementById("pageTitle").textContent = title;
+    resultCount.textContent = `${count} 条`;
+  }
+
+  function render() {
+    renderFilters();
+    const items = filteredSignals();
+    renderTitle(items.length);
+    renderCards(items);
+    emptyState.style.display = items.length ? "none" : "block";
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[char]));
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replace(/\n/g, "");
+  }
+
+  function formatEvidence(value) {
+    return value === "official" ? "一手" : value === "analysis" ? "分析" : "媒体";
+  }
+
+  function formatConfidence(value) {
+    return value === "high" ? "高可信" : value === "low" ? "低可信" : "中可信";
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString("zh-CN", { hour12: false });
+  }
+
+  searchInput.addEventListener("input", (event) => {
+    state.query = event.target.value || "";
+    render();
+  });
+
+  render();
+})();
+  </script>
+</body>
+</html>

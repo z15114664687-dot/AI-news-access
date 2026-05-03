@@ -2,6 +2,20 @@
 
 本地运行的 AI 情报系统，用于跟踪“模型、Agent、工具、内容生态、商业化”的公司和行业信号。当前版本包含 Next.js 前端、本地 SQLite 数据库、Gemini Google Search grounding 采集、自动分类摘要、报告生成和本地 Markdown 下载。
 
+## 静态快照
+
+仓库根目录提供可直接打开的静态版页面：
+
+```text
+AI-news-dashboard.html
+```
+
+同一份静态页也会导出到 `docs/index.html`，便于后续开启 GitHub Pages。刷新静态快照时运行：
+
+```bash
+npm run static:export
+```
+
 ## 本地启动
 
 要求：Node.js 22 或更新版本。

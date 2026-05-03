@@ -11,6 +11,7 @@
     "db:seed": "node scripts/seed.js",
     "db:setup": "npm run db:migrate && npm run db:seed",
     "links:repair": "node scripts/repair-source-links.mjs",
+    "static:export": "node scripts/export-static-dashboard.mjs",
     "local:setup": "npm run db:setup",
     "local:open": "npm run local:setup && (sleep 2 && open http://127.0.0.1:3000) & next dev --hostname 127.0.0.1"
   },
