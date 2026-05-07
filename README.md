@@ -16,6 +16,10 @@ AI-news-dashboard.html
 npm run static:export
 ```
 
+## 工程经验
+
+前后端迭代经验已沉淀在 [docs/engineering-lessons.md](/Users/yuanshikang/Desktop/codex/docs/engineering-lessons.md)，后续修改数据契约、采集层、静态导出或 Dashboard 交互时优先参考。
+
 ## 本地启动
 
 要求：Node.js 22 或更新版本。
