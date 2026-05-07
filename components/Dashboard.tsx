@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { companiesForSignal, sortCompanies } from "@/lib/companies";
+import { companiesForSignal, focusedCompanies } from "@/lib/companies";
 import { sourceUrlForSignal } from "@/lib/sourceUrls";
 import type { CollectionRun, Signal, Source } from "@/lib/types";
 
@@ -82,8 +82,7 @@ export default function Dashboard() {
     const normalizedQuery = query.trim().toLowerCase();
     return signals.filter((signal) => {
       const topicMatch = mode !== "topic" || topic === "all" || signal.topics.includes(topic);
-      const companyMatch =
-        mode !== "company" || (isCompanySignal(signal) && (companyName === "all" || company(signal).includes(companyName)));
+      const companyMatch = mode !== "company" || companyName === "all" || company(signal).includes(companyName);
       const queryText = [
         signal.entity,
         company(signal).join(" "),
@@ -678,12 +677,14 @@ function SignalGrid({ signals }: { signals: Signal[] }) {
 }
 
 function Matrix({ signals }: { signals: Signal[] }) {
-  const matrixSignals = signals.filter(isCompanySignal);
-  const entities = [...new Set(matrixSignals.flatMap(company))].sort();
+  const matrixSignals = signals.filter((signal) => company(signal).length);
+  const entities = focusedCompanies(matrixSignals.flatMap(company));
+  if (!entities.length) return <p className="empty-state">没有可对标的公司信号</p>;
+
   return (
     <div className="matrix-wrap">
-      <table>
-        <caption>仅展示明确归属于单一公司的信号；行业通用、市场协议和采用案例保留在时间线与信号卡片中。</caption>
+      <table className="comparison-table">
+        <caption>每行是一家公司，每格展示该主题下的最新代表动作；数字表示当前筛选范围内的相关信号数。</caption>
         <thead>
           <tr>
             <th>实体</th>
@@ -693,28 +694,52 @@ function Matrix({ signals }: { signals: Signal[] }) {
           </tr>
         </thead>
         <tbody>
-          {entities.map((entity) => (
-            <tr key={entity}>
-              <td>{entity}</td>
-              {topicOrder.map((item) => {
-                const hits = matrixSignals.filter((signal) => company(signal).includes(entity) && signal.topics.includes(item));
-                return (
-                  <td key={item}>
-                    {hits.length ? <span className="matrix-count">{hits.length}</span> : " "}
-                    {hits.map((hit) => (
-                      <span className="cell-chip" key={hit.id}>
-                        {hit.product}
-                      </span>
-                    ))}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
+          {entities.map((entity) => {
+            const entitySignals = sortSignalsByDate(matrixSignals.filter((signal) => company(signal).includes(entity)));
+            return (
+              <tr key={entity}>
+                <th scope="row" className="matrix-entity">
+                  <strong>{entity}</strong>
+                  <span>{entitySignals.length} 条信号</span>
+                </th>
+                {topicOrder.map((item) => (
+                  <MatrixTopicCell key={item} topic={item} hits={sortSignalsByDate(entitySignals.filter((signal) => signal.topics.includes(item)))} />
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
+}
+
+function MatrixTopicCell({ topic, hits }: { topic: string; hits: Signal[] }) {
+  const lead = hits[0];
+  if (!lead) return <td className="matrix-empty">暂无</td>;
+  const supporting = hits.slice(1, 3).map((signal) => signal.product).filter(Boolean);
+  return (
+    <td>
+      <article className="matrix-topic-card">
+        <div className="matrix-topic-head">
+          <span className={`tag ${topicClass[topic] || "tool"}`}>{hits.length}</span>
+          <time>{lead.date}</time>
+        </div>
+        <strong>{shorten(lead.title, 54)}</strong>
+        <p>{shorten(lead.summary, 82)}</p>
+        {supporting.length ? <em>另有：{supporting.join("、")}</em> : null}
+      </article>
+    </td>
+  );
+}
+
+function sortSignalsByDate(signals: Signal[]) {
+  return [...signals].sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt));
+}
+
+function shorten(value: string, length: number) {
+  const text = value.replace(/\s+/g, " ").trim();
+  return text.length > length ? `${text.slice(0, length - 1)}…` : text;
 }
 
 function EcosystemMap({ signals }: { signals: Signal[] }) {
@@ -899,7 +924,7 @@ function isCompanySignal(signal: Signal) {
 }
 
 function companyList(signals: Signal[]) {
-  return sortCompanies(signals.filter(isCompanySignal).flatMap(company));
+  return focusedCompanies(signals.flatMap(company));
 }
 
 function countBy<T>(items: T[], fn: (item: T) => string) {

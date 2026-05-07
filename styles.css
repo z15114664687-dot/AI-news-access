@@ -898,21 +898,26 @@ a:focus-visible {
 
 table {
   width: 100%;
-  min-width: 860px;
+  min-width: 1180px;
   border-collapse: collapse;
   font-size: 13px;
 }
 
+.comparison-table {
+  table-layout: fixed;
+}
+
 caption {
-  padding: 10px 12px;
+  padding: 12px 14px;
   color: var(--muted);
   background: #ffffff;
   text-align: left;
+  line-height: 1.5;
 }
 
 th,
 td {
-  padding: 11px 12px;
+  padding: 12px;
   border-bottom: 1px solid var(--line);
   vertical-align: top;
   text-align: left;
@@ -926,13 +931,38 @@ th {
   z-index: 1;
 }
 
+.comparison-table th:first-child {
+  width: 140px;
+}
+
 tbody tr:hover {
   background: #f8fafc;
 }
 
-td:first-child,
-th:first-child {
-  font-weight: 800;
+.matrix-entity {
+  color: var(--ink);
+  background: #ffffff;
+}
+
+.matrix-entity strong,
+.matrix-entity span {
+  display: block;
+}
+
+.matrix-entity strong {
+  font-size: 15px;
+}
+
+.matrix-entity span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.matrix-empty {
+  color: #94a3b8;
+  font-weight: 700;
 }
 
 .cell-chip {
@@ -964,6 +994,53 @@ th:first-child {
   background: var(--blue);
   font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
+}
+
+.matrix-topic-card {
+  display: grid;
+  gap: 8px;
+  min-height: 148px;
+}
+
+.matrix-topic-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.matrix-topic-head .tag {
+  min-width: 28px;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.matrix-topic-head time {
+  color: var(--muted);
+  font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.matrix-topic-card strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.matrix-topic-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.matrix-topic-card em {
+  color: #475569;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .ecosystem-map {

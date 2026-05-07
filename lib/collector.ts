@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { normalizeCompanyName } from "./companies";
+import { focusedCompanies, normalizeCompanyName } from "./companies";
 import { inferPrimaryTopic, signalIdFromUrl, topicOrder } from "./classifier";
 import { findSimilarSignal, finishCollectionRun, insertSignal, listSources, createCollectionRun } from "./db";
 import { resolveSourceUrl } from "./linkResolver";
@@ -72,7 +72,7 @@ export async function runCollection(options: { days?: number } = {}) {
         const results = await collectWithGemini(task, apiKey);
         stats.foundCount += results.length;
         for (const result of results) {
-          const signal = await normalizeGeminiSignal(result, task.topic);
+          const signal = await normalizeGeminiSignal(result, task.topic, task.entity);
           if (!signal) {
             stats.skippedCount += 1;
             stats.logs.push({
@@ -277,7 +277,7 @@ function parseJsonObject(text: string): { signals?: GeminiSignal[] } {
   }
 }
 
-async function normalizeGeminiSignal(result: GeminiSignal, fallbackTopic: string): Promise<Omit<Signal, "createdAt" | "updatedAt"> | null> {
+async function normalizeGeminiSignal(result: GeminiSignal, fallbackTopic: string, focusEntity: string): Promise<Omit<Signal, "createdAt" | "updatedAt"> | null> {
   const candidateUrl = normalizeSourceUrl(cleanString(result.url));
   const sourceQuery = cleanString(result.sourceQuery);
   const checkedUrl = await resolveSourceUrl({
@@ -297,12 +297,15 @@ async function normalizeGeminiSignal(result: GeminiSignal, fallbackTopic: string
   if (!cleanString(result.title) || !finalUrl) return null;
 
   const domain = cleanString(result.domain) || domainFromUrl(finalUrl);
-  const companies = Array.isArray(result.companies) ? result.companies.map(cleanString).map(normalizeCompanyName).filter(Boolean) : [];
+  const rawCompanies = Array.isArray(result.companies) ? result.companies.map(cleanString).map(normalizeCompanyName).filter(Boolean) : [];
+  const focusCompany = normalizeCompanyName(focusEntity);
+  const focusedRawCompanies = focusedCompanies(rawCompanies);
+  const companies = focusedRawCompanies.length ? focusedRawCompanies : focusCompany && mentionsFocusCompany(result, focusCompany) ? [focusCompany] : rawCompanies;
   const topics = Array.isArray(result.topics)
     ? result.topics.map(cleanString).filter((topic) => topicOrder.includes(topic))
     : [];
   const primaryTopic = inferPrimaryTopic(cleanString(result.title), cleanString(result.summary), topics[0] || fallbackTopic);
-  const entity = cleanString(result.entity) || companies[0] || "Market Signal";
+  const entity = companies[0] || cleanString(result.entity) || "Market Signal";
   const normalizedEntity = normalizeCompanyName(entity);
 
   return {
@@ -336,6 +339,14 @@ async function normalizeGeminiSignal(result: GeminiSignal, fallbackTopic: string
     },
     confirmed: false,
   };
+}
+
+function mentionsFocusCompany(result: GeminiSignal, focusCompany: string) {
+  const text = [result.entity, result.title, result.summary, result.product, ...(Array.isArray(result.companies) ? result.companies : [])]
+    .map(cleanString)
+    .join(" ")
+    .toLowerCase();
+  return Boolean(focusCompany) && text.includes(focusCompany.toLowerCase());
 }
 
 function fallbackSourceUrl(input: { url: string; title: string; domain: string; query: string }) {

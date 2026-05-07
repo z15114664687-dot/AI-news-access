@@ -24,6 +24,7 @@ const companyAliases: Array<{ canonical: string; aliases: string[] }> = [
 ];
 
 export const preferredCompanyOrder = ["OpenAI", "Anthropic", "Google", "Cursor", "Amazon", "Microsoft", "Meta", "xAI", "DeepSeek", "Alibaba"];
+const focusedCompanySet = new Set(preferredCompanyOrder);
 
 export function normalizeCompanyName(value: string) {
   const text = value.trim();
@@ -36,6 +37,14 @@ export function normalizeCompanyName(value: string) {
 export function companiesForSignal(signal: Pick<Signal, "companies" | "entity">) {
   const raw = Array.isArray(signal.companies) && signal.companies.length ? signal.companies : [signal.entity];
   return [...new Set(raw.map(normalizeCompanyName).filter(Boolean))];
+}
+
+export function isFocusedCompany(value: string) {
+  return focusedCompanySet.has(normalizeCompanyName(value));
+}
+
+export function focusedCompanies(names: string[]) {
+  return sortCompanies(names).filter(isFocusedCompany);
 }
 
 export function sortCompanies(names: string[]) {
