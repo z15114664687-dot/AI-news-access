@@ -3,7 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { focusedCompanies, normalizeCompanyName } from "./companies";
 import { inferPrimaryTopic, signalIdFromUrl, topicOrder } from "./classifier";
-import { findSimilarSignal, finishCollectionRun, insertSignal, listSources, createCollectionRun } from "./db";
+import { failStaleRuns, findSimilarSignal, finishCollectionRun, insertSignal, listSources, createCollectionRun } from "./db";
 import { resolveSourceUrl } from "./linkResolver";
 import { isUsableSourceUrl, normalizeSourceUrl } from "./sourceUrls";
 import type { Confidence, EvidenceLevel, Signal } from "./types";
@@ -46,10 +46,46 @@ type RunStats = {
   logs: Array<Record<string, unknown>>;
 };
 
-export async function runCollection(options: { days?: number } = {}) {
+// 采集状态挂在 globalThis 上，避免 dev 模式 HMR 重新加载模块后丢锁
+const globalForCollector = globalThis as unknown as { activeCollectionRunId?: string | null };
+
+export function activeCollectionRunId() {
+  return globalForCollector.activeCollectionRunId || null;
+}
+
+// 立即返回 runId，采集在后台继续；HTTP 请求不用等全程跑完。
+// 同一进程同时只允许一个 run，重复触发返回 already-running。
+export async function startCollection(options: { days?: number } = {}) {
+  const activeId = activeCollectionRunId();
+  if (activeId) {
+    return { id: activeId, status: "already-running" as const };
+  }
+
+  failStaleRuns();
   const runId = crypto.randomUUID();
   await createCollectionRun(runId);
+  globalForCollector.activeCollectionRunId = runId;
 
+  const completion = executeCollection(runId, options)
+    .catch((error) => {
+      console.error("Collection run crashed:", error);
+      return null;
+    })
+    .finally(() => {
+      globalForCollector.activeCollectionRunId = null;
+    });
+
+  return { id: runId, status: "running" as const, completion };
+}
+
+// 同步等待采集完成（供脚本/CLI 使用）
+export async function runCollection(options: { days?: number } = {}) {
+  const started = await startCollection(options);
+  if (started.status === "already-running" || !("completion" in started)) return started;
+  return started.completion;
+}
+
+async function executeCollection(runId: string, options: { days?: number } = {}) {
   const stats: RunStats = { foundCount: 0, insertedCount: 0, skippedCount: 0, errorCount: 0, logs: [] };
   try {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -139,11 +175,16 @@ function readCollectorConfig(): CollectorConfig {
 function buildTasks(config: CollectorConfig, sourceDomains: string[], days: number) {
   const limit = Number(process.env.COLLECT_QUERY_LIMIT || 12);
   const tasks: CollectionTask[] = [];
+  const { entities, topics } = config;
+  if (!entities.length || !topics.length) return tasks;
 
-  for (const entity of config.entities) {
-    for (const topic of config.topics) {
-      tasks.push({ entity, topic, sourceDomains, days });
-      if (tasks.length >= limit) return tasks;
+  // 对角线轮转配对：第一轮就覆盖所有 entity（各配不同 topic），限额再小也不会漏公司；
+  // rotation 按天推进，多次运行后每个 entity 会轮完所有 topic。
+  const rotation = Math.floor(Date.now() / (24 * 60 * 60 * 1000)) % topics.length;
+  for (let round = 0; round < topics.length && tasks.length < limit; round += 1) {
+    for (let index = 0; index < entities.length && tasks.length < limit; index += 1) {
+      const topic = topics[(rotation + round + index) % topics.length];
+      tasks.push({ entity: entities[index], topic, sourceDomains, days });
     }
   }
   return tasks;

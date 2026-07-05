@@ -189,14 +189,31 @@ export default function Dashboard() {
   async function runCollector() {
     setCollecting(true);
     try {
-      await fetch("/api/collect/run", {
+      const response = await fetch("/api/collect/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ days: collectDays }),
       });
+      // 202 表示后台已开跑，409 表示已有 run 在跑；两种情况都轮询到结束
+      if (response.ok || response.status === 409) {
+        await waitForCollectionFinish();
+      }
       await Promise.all([loadSignals(), loadCollectionState()]);
     } finally {
       setCollecting(false);
+    }
+  }
+
+  async function waitForCollectionFinish() {
+    const deadline = Date.now() + 15 * 60 * 1000;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const response = await fetch("/api/collect/runs", { cache: "no-store" });
+      if (!response.ok) continue;
+      const data = await response.json();
+      const latestRun = (data.runs || [])[0];
+      setRuns(data.runs || []);
+      if (latestRun && latestRun.status !== "running") return;
     }
   }
 

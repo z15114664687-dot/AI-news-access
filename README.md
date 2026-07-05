@@ -104,7 +104,30 @@ Gemini API Key 可以在 Google AI Studio 创建：`https://ai.google.dev/gemini
 
 `COLLECT_DAYS` 是默认采集时间范围，页面「采集」视图里也可以临时选择最近 7、14、30、90 或 180 天。时间范围越短，越能减少无效搜索和 API 消耗。
 
-没有 `GEMINI_API_KEY` 时，采集按钮仍会创建一条运行记录，但不会写入新信号。第一版不会常驻后台任务，不会自动定时采集。
+没有 `GEMINI_API_KEY` 时，采集按钮仍会创建一条运行记录，但不会写入新信号。
+
+采集是后台异步执行的：`POST /api/collect/run` 立即返回 runId（HTTP 202），采集在服务进程内继续跑，页面会自动轮询状态直到结束。同一时间只允许一个采集任务，重复触发会返回 409。
+
+`COLLECT_QUERY_LIMIT` 限制每次采集的查询次数。任务按“对角线轮转”配对：第一轮先保证每家公司都查到（各配不同主题），主题按天轮换，多次运行后每家公司会覆盖所有主题。
+
+### 定时采集
+
+服务跑起来之后，可以用脚本触发一次完整采集并等待结束（适合 crontab）：
+
+```bash
+npm run collect          # 默认 COLLECT_DAYS
+node scripts/collect.mjs 7   # 只采最近 7 天
+```
+
+crontab 示例（每天早上 8 点采集一次，前提是服务已用 pm2/systemd 常驻）：
+
+```cron
+0 8 * * * cd /path/to/codex && /usr/local/bin/node scripts/collect.mjs 7 >> logs/collect.log 2>&1
+```
+
+## 数据库迁移
+
+表结构变更用版本化迁移管理：SQL 文件放在 `db/migrations/`，按文件名顺序执行，已执行的记录在 `schema_migrations` 表里不会重复跑。新增字段时新建 `003_xxx.sql`，不要改旧文件。应用启动和 `npm run db:migrate` 都会自动补齐未执行的迁移。
 
 ## GitHub 提交建议
 

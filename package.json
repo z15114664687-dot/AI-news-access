@@ -10,6 +10,7 @@
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed.js",
     "db:setup": "npm run db:migrate && npm run db:seed",
+    "collect": "node scripts/collect.mjs",
     "links:repair": "node scripts/repair-source-links.mjs",
     "static:export": "node scripts/export-static-dashboard.mjs",
     "local:setup": "npm run db:setup",
