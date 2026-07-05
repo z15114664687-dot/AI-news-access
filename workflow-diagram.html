@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI 情报系统工作流图</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #5f6b7a;
+      --line: #d7deea;
+      --blue: #2563eb;
+      --green: #0f766e;
+      --amber: #b45309;
+      --rose: #be123c;
+      --violet: #6d28d9;
+      --shadow: 0 14px 42px rgba(25, 35, 60, 0.10);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1420px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 34px 0 44px;
+    }
+
+    header {
+      display: flex;
+      gap: 24px;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .canvas {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    svg {
+      display: block;
+      min-width: 1360px;
+      width: 100%;
+      height: auto;
+    }
+
+    .group {
+      fill: #f8fafc;
+      stroke: #dbe3ef;
+      stroke-width: 1.2;
+    }
+
+    .group-title {
+      fill: #425066;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .box {
+      fill: #ffffff;
+      stroke: #cfd8e6;
+      stroke-width: 1.4;
+      filter: drop-shadow(0 4px 9px rgba(38, 50, 76, 0.08));
+    }
+
+    .box-blue { stroke: var(--blue); }
+    .box-green { stroke: var(--green); }
+    .box-amber { stroke: var(--amber); }
+    .box-rose { stroke: var(--rose); }
+    .box-violet { stroke: var(--violet); }
+
+    .decision {
+      fill: #fffaf1;
+      stroke: var(--amber);
+      stroke-width: 1.5;
+      filter: drop-shadow(0 4px 9px rgba(38, 50, 76, 0.08));
+    }
+
+    .title {
+      fill: var(--ink);
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .small {
+      fill: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .arrow {
+      fill: none;
+      stroke: #758399;
+      stroke-width: 1.8;
+      marker-end: url(#arrow);
+    }
+
+    .arrow-blue {
+      stroke: var(--blue);
+    }
+
+    .arrow-label {
+      fill: #5f6b7a;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .legend-item {
+      min-height: 56px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .legend-item strong {
+      display: block;
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .legend-item span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        width: min(100% - 24px, 1420px);
+        padding-top: 22px;
+      }
+
+      header {
+        display: block;
+      }
+
+      .badge {
+        margin-top: 12px;
+      }
+
+      .legend {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>AI 情报系统：信息获取到展示工作流</h1>
+        <p class="subtitle">覆盖采集配置、Gemini Google Search grounding、链接解析、SQLite 存储、Next.js API、React 展示、报告生成和静态导出。</p>
+      </div>
+      <div class="badge">Standalone HTML · 可本地离线打开</div>
+    </header>
+
+    <section class="canvas" aria-label="工作流图">
+      <svg viewBox="0 0 1360 760" role="img" aria-labelledby="diagramTitle diagramDesc">
+        <title id="diagramTitle">AI 情报系统工作流图</title>
+        <desc id="diagramDesc">从用户触发采集，到信息搜索、结构化、清洗、去重、入库、API 读取、前端展示、报告生成和静态导出的完整流程。</desc>
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#758399"></path>
+          </marker>
+        </defs>
+
+        <rect class="group" x="30" y="36" width="230" height="650" rx="8"></rect>
+        <text class="group-title" x="52" y="66">1. 输入与触发</text>
+
+        <rect class="group" x="292" y="36" width="320" height="650" rx="8"></rect>
+        <text class="group-title" x="314" y="66">2. 采集与结构化</text>
+
+        <rect class="group" x="644" y="36" width="310" height="650" rx="8"></rect>
+        <text class="group-title" x="666" y="66">3. 清洗、解析、入库</text>
+
+        <rect class="group" x="986" y="36" width="340" height="650" rx="8"></rect>
+        <text class="group-title" x="1008" y="66">4. API、展示、输出</text>
+
+        <rect class="box box-blue" x="58" y="102" width="174" height="74" rx="8"></rect>
+        <text class="title" x="145" y="130" text-anchor="middle">用户操作</text>
+        <text class="small" x="145" y="152" text-anchor="middle">Dashboard 采集视图</text>
+
+        <rect class="box box-blue" x="58" y="220" width="174" height="82" rx="8"></rect>
+        <text class="title" x="145" y="250" text-anchor="middle">采集配置</text>
+        <text class="small" x="145" y="272" text-anchor="middle">entities + topics</text>
+
+        <rect class="box box-blue" x="58" y="344" width="174" height="82" rx="8"></rect>
+        <text class="title" x="145" y="374" text-anchor="middle">环境变量</text>
+        <text class="small" x="145" y="396" text-anchor="middle">Key / 模型 / 天数 / 上限</text>
+
+        <rect class="box box-green" x="326" y="102" width="230" height="82" rx="8"></rect>
+        <text class="title" x="441" y="132" text-anchor="middle">Next.js 采集 API</text>
+        <text class="small" x="441" y="154" text-anchor="middle">POST /api/collect/run</text>
+
+        <rect class="box box-green" x="326" y="228" width="230" height="86" rx="8"></rect>
+        <text class="title" x="441" y="260" text-anchor="middle">采集核心</text>
+        <text class="small" x="441" y="282" text-anchor="middle">lib/collector.ts</text>
+
+        <rect class="box box-violet" x="326" y="358" width="230" height="86" rx="8"></rect>
+        <text class="title" x="441" y="390" text-anchor="middle">Gemini API</text>
+        <text class="small" x="441" y="412" text-anchor="middle">Google Search grounding</text>
+
+        <rect class="box box-violet" x="326" y="488" width="230" height="86" rx="8"></rect>
+        <text class="title" x="441" y="520" text-anchor="middle">结构化 JSON</text>
+        <text class="small" x="441" y="542" text-anchor="middle">标题 / 摘要 / URL / 话题</text>
+
+        <rect class="box box-amber" x="676" y="116" width="226" height="86" rx="8"></rect>
+        <text class="title" x="789" y="148" text-anchor="middle">清洗归一化</text>
+        <text class="small" x="789" y="170" text-anchor="middle">公司名 / 主话题 / 证据级别</text>
+
+        <path class="decision" d="M789 245 L910 315 L789 385 L668 315 Z"></path>
+        <text class="title" x="789" y="309" text-anchor="middle">来源链接</text>
+        <text class="small" x="789" y="331" text-anchor="middle">可直接用？</text>
+
+        <rect class="box box-amber" x="674" y="438" width="230" height="86" rx="8"></rect>
+        <text class="title" x="789" y="470" text-anchor="middle">链接解析</text>
+        <text class="small" x="789" y="492" text-anchor="middle">linkResolver + 本地 CDP</text>
+
+        <rect class="box box-rose" x="674" y="572" width="230" height="86" rx="8"></rect>
+        <text class="title" x="789" y="604" text-anchor="middle">SQLite 入库</text>
+        <text class="small" x="789" y="626" text-anchor="middle">signals / runs / reports</text>
+
+        <rect class="box box-green" x="1018" y="102" width="236" height="82" rx="8"></rect>
+        <text class="title" x="1136" y="132" text-anchor="middle">Next.js 读取 API</text>
+        <text class="small" x="1136" y="154" text-anchor="middle">/api/signals + /api/collect/runs</text>
+
+        <rect class="box box-blue" x="1018" y="228" width="236" height="86" rx="8"></rect>
+        <text class="title" x="1136" y="260" text-anchor="middle">React Dashboard</text>
+        <text class="small" x="1136" y="282" text-anchor="middle">状态 / 搜索 / 筛选 / 视图</text>
+
+        <rect class="box box-blue" x="1018" y="358" width="236" height="86" rx="8"></rect>
+        <text class="title" x="1136" y="390" text-anchor="middle">前端展示</text>
+        <text class="small" x="1136" y="412" text-anchor="middle">卡片 / 矩阵 / 公司地图 / 记录</text>
+
+        <rect class="box box-violet" x="1018" y="488" width="236" height="86" rx="8"></rect>
+        <text class="title" x="1136" y="520" text-anchor="middle">Markdown 报告</text>
+        <text class="small" x="1136" y="542" text-anchor="middle">Gemini 或本地模板生成</text>
+
+        <rect class="box box-rose" x="1018" y="616" width="236" height="86" rx="8"></rect>
+        <text class="title" x="1136" y="648" text-anchor="middle">静态快照</text>
+        <text class="small" x="1136" y="670" text-anchor="middle">AI-news-dashboard.html / docs</text>
+
+        <path class="arrow arrow-blue" d="M232 139 C270 139 284 143 326 143"></path>
+        <path class="arrow" d="M232 261 C274 261 284 271 326 271"></path>
+        <path class="arrow" d="M232 385 C274 385 284 284 326 284"></path>
+        <path class="arrow" d="M441 184 L441 228"></path>
+        <path class="arrow" d="M441 314 L441 358"></path>
+        <path class="arrow" d="M441 444 L441 488"></path>
+        <path class="arrow" d="M556 531 C615 531 610 159 676 159"></path>
+        <path class="arrow" d="M789 202 L789 245"></path>
+        <path class="arrow" d="M789 385 L789 438"></path>
+        <text class="arrow-label" x="824" y="417">否 / 跳转</text>
+        <path class="arrow" d="M910 315 C952 315 948 615 904 615"></path>
+        <text class="arrow-label" x="918" y="348">是</text>
+        <path class="arrow" d="M789 524 L789 572"></path>
+        <path class="arrow" d="M904 615 C952 615 966 143 1018 143"></path>
+        <path class="arrow" d="M1136 184 L1136 228"></path>
+        <path class="arrow" d="M1136 314 L1136 358"></path>
+        <path class="arrow" d="M1136 444 L1136 488"></path>
+        <path class="arrow" d="M904 636 C958 636 962 657 1018 657"></path>
+      </svg>
+    </section>
+
+    <section class="legend" aria-label="工具说明">
+      <div class="legend-item">
+        <strong>信息获取</strong>
+        <span>Gemini API + Google Search grounding 搜索实时网页并输出结构化 JSON。</span>
+      </div>
+      <div class="legend-item">
+        <strong>链接校验</strong>
+        <span>sourceUrls 校验 URL；linkResolver 通过本地 CDP/浏览器解析真实原文。</span>
+      </div>
+      <div class="legend-item">
+        <strong>数据存储</strong>
+        <span>better-sqlite3 写入本地 SQLite：signals、sources、collection_runs、reports。</span>
+      </div>
+      <div class="legend-item">
+        <strong>页面展示</strong>
+        <span>Next.js API 提供数据，React Dashboard 渲染卡片、矩阵、地图和采集状态。</span>
+      </div>
+      <div class="legend-item">
+        <strong>离线输出</strong>
+        <span>static:export 从 SQLite 或样本 JSON 导出静态 HTML 快照。</span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

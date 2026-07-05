@@ -24,8 +24,42 @@ export const db = globalForSqlite.sqliteDb || openDatabase();
 if (process.env.NODE_ENV !== "production") globalForSqlite.sqliteDb = db;
 
 export function migrate() {
-  const sql = fs.readFileSync(path.join(process.cwd(), "db", "001_init.sql"), "utf8");
-  db.exec(sql);
+  db.exec(
+    "CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
+  );
+  const applied = new Set(
+    (db.prepare("SELECT version FROM schema_migrations").all() as Array<{ version: string }>).map((row) => row.version),
+  );
+  const migrationsDir = path.join(process.cwd(), "db", "migrations");
+  const files = fs
+    .readdirSync(migrationsDir)
+    .filter((file) => file.endsWith(".sql"))
+    .sort();
+  for (const file of files) {
+    if (applied.has(file)) continue;
+    db.transaction(() => {
+      db.exec(fs.readFileSync(path.join(migrationsDir, file), "utf8"));
+      db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(file);
+    })();
+  }
+}
+
+function backfillSourceKeys() {
+  const rows = db
+    .prepare("SELECT id, url FROM signals WHERE source_key IS NULL OR source_key = ''")
+    .all() as Array<{ id: string; url: string }>;
+  if (!rows.length) return;
+  const update = db.prepare("UPDATE signals SET source_key = ? WHERE id = ?");
+  db.transaction(() => {
+    for (const row of rows) update.run(sourceKeyForUrl(row.url), row.id);
+  })();
+}
+
+// 进程重启后，上一次没跑完的 run 会永远停在 running；启动时统一标记为 failed。
+export function failStaleRuns() {
+  db.prepare(
+    "UPDATE collection_runs SET status = 'failed', finished_at = CURRENT_TIMESTAMP WHERE status = 'running'",
+  ).run();
 }
 
 function parseJson<T>(value: unknown, fallback: T): T {
@@ -77,17 +111,35 @@ function mapRun(row: Record<string, unknown>): CollectionRun {
 }
 
 export async function listSignals(filters: SignalFilters = {}) {
-  const rows = db.prepare("SELECT * FROM signals ORDER BY date DESC, updated_at DESC").all() as Array<Record<string, unknown>>;
+  const where: string[] = [];
+  const params: string[] = [];
+  if (filters.startDate) {
+    where.push("date >= ?");
+    params.push(filters.startDate);
+  }
+  if (filters.endDate) {
+    where.push("date <= ?");
+    params.push(filters.endDate);
+  }
+  if (filters.topic) {
+    where.push("EXISTS (SELECT 1 FROM json_each(signals.topics) WHERE json_each.value = ?)");
+    params.push(filters.topic);
+  }
+  if (filters.topics?.length) {
+    where.push(
+      `EXISTS (SELECT 1 FROM json_each(signals.topics) WHERE json_each.value IN (${filters.topics.map(() => "?").join(", ")}))`,
+    );
+    params.push(...filters.topics);
+  }
+  const sql = `SELECT * FROM signals${where.length ? ` WHERE ${where.join(" AND ")}` : ""} ORDER BY date DESC, updated_at DESC`;
+  const rows = db.prepare(sql).all(...params) as Array<Record<string, unknown>>;
   return rows.map(mapSignal).filter((signal) => {
+    // 公司过滤和全文匹配依赖别名归一化，留在 JS 层
     const signalCompanies = companiesForSignal(signal);
     const filterCompany = filters.company ? normalizeCompanyName(filters.company) : "";
     const filterCompanies = filters.companies?.map(normalizeCompanyName).filter(Boolean) || [];
     if (filterCompany && !signalCompanies.includes(filterCompany)) return false;
     if (filterCompanies.length && !filterCompanies.some((company) => signalCompanies.includes(company))) return false;
-    if (filters.topic && !signal.topics.includes(filters.topic)) return false;
-    if (filters.topics?.length && !filters.topics.some((topic) => signal.topics.includes(topic))) return false;
-    if (filters.startDate && signal.date < filters.startDate) return false;
-    if (filters.endDate && signal.date > filters.endDate) return false;
     if (filters.query) {
       const query = filters.query.toLowerCase();
       const text = [
@@ -132,14 +184,24 @@ export async function findSignalByUrl(url: string) {
 
 export async function findSimilarSignal(signal: Omit<Signal, "createdAt" | "updatedAt">) {
   const incomingSourceKey = sourceKeyForUrl(signal.url);
-  const incomingCompanies = normalizedCompanies(signal.companies, signal.entity);
-  const rows = db.prepare("SELECT id, date, entity, companies, product, title, summary, url FROM signals").all() as Array<Record<string, unknown>>;
-
-  for (const row of rows) {
-    if (incomingSourceKey && sourceKeyForUrl(String(row.url)) === incomingSourceKey) {
-      return { id: String(row.id), reason: "same-source-url" };
-    }
+  if (incomingSourceKey) {
+    const sameSource = db.prepare("SELECT id FROM signals WHERE source_key = ?").get(incomingSourceKey) as
+      | { id: string }
+      | undefined;
+    if (sameSource) return { id: String(sameSource.id), reason: "same-source-url" };
   }
+
+  const incomingCompanies = normalizedCompanies(signal.companies, signal.entity);
+  // 相似度判定本身只接受 ±3 天内的信号，先用日期窗口把候选集压下来
+  const windowStart = shiftDate(signal.date, -3);
+  const windowEnd = shiftDate(signal.date, 3);
+  const rows = (
+    windowStart && windowEnd
+      ? db
+          .prepare("SELECT id, date, entity, companies, product, title, summary, url FROM signals WHERE date BETWEEN ? AND ?")
+          .all(windowStart, windowEnd)
+      : db.prepare("SELECT id, date, entity, companies, product, title, summary, url FROM signals").all()
+  ) as Array<Record<string, unknown>>;
 
   for (const row of rows) {
     const existingCompanies = normalizedCompanies(parseJson<string[]>(row.companies, []), String(row.entity || ""));
@@ -175,8 +237,8 @@ export async function insertSignal(signal: Omit<Signal, "createdAt" | "updatedAt
   db.prepare(
     `INSERT INTO signals (
       id, date, entity, entity_type, companies, product, title, summary, topics, topic_mode,
-      source, domain, url, evidence_level, confidence, collection_source, ai_classification, confirmed
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      source, domain, url, source_key, evidence_level, confidence, collection_source, ai_classification, confirmed
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     signal.id,
     signal.date,
@@ -191,6 +253,7 @@ export async function insertSignal(signal: Omit<Signal, "createdAt" | "updatedAt
     signal.source,
     signal.domain,
     signal.url,
+    sourceKeyForUrl(signal.url),
     signal.evidenceLevel,
     signal.confidence,
     signal.collectionSource,
@@ -201,6 +264,12 @@ export async function insertSignal(signal: Omit<Signal, "createdAt" | "updatedAt
 
 function normalizedCompanies(companies: string[], entity: string) {
   return [...new Set([...(companies || []), entity].map(normalizeCompanyName).filter(Boolean))];
+}
+
+function shiftDate(value: string, days: number) {
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) return "";
+  return new Date(time + days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 function dateDistanceDays(left: string, right: string) {
@@ -303,8 +372,8 @@ export async function upsertSeedSignal(signal: Omit<Signal, "createdAt" | "updat
   db.prepare(
     `INSERT INTO signals (
       id, date, entity, entity_type, companies, product, title, summary, topics, topic_mode,
-      source, domain, url, evidence_level, confidence, collection_source, ai_classification, confirmed
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'seed', ?, 1)
+      source, domain, url, source_key, evidence_level, confidence, collection_source, ai_classification, confirmed
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'seed', ?, 1)
     ON CONFLICT(url) DO UPDATE SET
       date = excluded.date,
       entity = excluded.entity,
@@ -317,6 +386,7 @@ export async function upsertSeedSignal(signal: Omit<Signal, "createdAt" | "updat
       topic_mode = excluded.topic_mode,
       source = excluded.source,
       domain = excluded.domain,
+      source_key = excluded.source_key,
       evidence_level = excluded.evidence_level,
       confidence = excluded.confidence,
       updated_at = CURRENT_TIMESTAMP`,
@@ -334,6 +404,7 @@ export async function upsertSeedSignal(signal: Omit<Signal, "createdAt" | "updat
     signal.source,
     signal.domain,
     signal.url,
+    sourceKeyForUrl(signal.url),
     signal.evidenceLevel,
     signal.confidence,
     JSON.stringify({ method: "seed", topics: signal.topics }),
@@ -341,3 +412,4 @@ export async function upsertSeedSignal(signal: Omit<Signal, "createdAt" | "updat
 }
 
 migrate();
+backfillSourceKeys();

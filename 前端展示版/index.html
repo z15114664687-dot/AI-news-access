@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Ecosystem Intelligence</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#mainContent">跳到主内容</a>
+    <div id="appShell" class="app-shell">
+      <aside class="sidebar">
+        <button id="sidebarToggle" class="sidebar-toggle" type="button" aria-label="收起侧边栏" aria-expanded="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+        </button>
+        <div class="brand-block">
+          <div class="brand-mark">AI</div>
+          <div>
+            <h1>AI Ecosystem Intelligence</h1>
+            <p>模型、Agent、工具、内容生态、商业化</p>
+          </div>
+        </div>
+
+        <section class="sidebar-card">
+          <span class="sidebar-kicker">Collector</span>
+          <strong>Google site: 发现层</strong>
+          <p>轻量采集标题、摘要、日期和 URL；高价值信号再进入原文核验。</p>
+        </section>
+
+        <section class="nav-group" aria-label="视角切换">
+          <h2>视角</h2>
+          <div class="mode-switch" role="group" aria-label="展示方式">
+            <button class="mode-button active" data-mode="overview" aria-pressed="true">总览</button>
+            <button class="mode-button" data-mode="topic" aria-pressed="false">By 话题</button>
+            <button class="mode-button" data-mode="company" aria-pressed="false">By 公司</button>
+          </div>
+        </section>
+
+        <nav id="dimensionNav" class="topic-nav" aria-label="维度筛选"></nav>
+
+        <section class="source-panel">
+          <h2>来源层级</h2>
+          <div id="sourceMix" class="source-mix"></div>
+        </section>
+      </aside>
+
+      <main id="mainContent" class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Snapshot · 2026-05-02</p>
+            <h2 id="pageTitle">AI 情报总览</h2>
+          </div>
+          <div class="toolbar">
+            <label class="search-box" aria-label="搜索信号">
+              <span aria-hidden="true"></span>
+              <input id="searchInput" type="search" placeholder="搜索公司、产品、主题或来源" />
+            </label>
+            <div class="segmented" role="group" aria-label="视图">
+              <button class="view-button active" data-view="signals" aria-pressed="true">信号</button>
+              <button class="view-button" data-view="matrix" aria-pressed="false">矩阵</button>
+              <button class="view-button" data-view="map" aria-pressed="false">生态</button>
+            </div>
+          </div>
+        </header>
+
+        <section class="briefing-strip" aria-label="当前情报摘要">
+          <div>
+            <span>Focus</span>
+            <strong id="briefingFocus">模型能力正在向 Agent 执行层和企业工具层迁移</strong>
+          </div>
+          <div>
+            <span>Method</span>
+            <strong>权威媒体发现 + 官方来源校验</strong>
+          </div>
+          <div>
+            <span>Risk</span>
+            <strong>付费墙来源以摘要和 URL 留痕为主</strong>
+          </div>
+        </section>
+
+        <section id="reportBuilder" class="report-builder" aria-label="报告生成器">
+          <div class="report-builder-head">
+            <div>
+              <span id="reportScopeLabel">报告范围</span>
+              <strong id="reportScopeTitle">选择公司或话题后生成报告</strong>
+            </div>
+            <button id="generateReportButton" class="primary-action" type="button">生成总结报告</button>
+          </div>
+
+          <div class="report-tabs" role="tablist" aria-label="报告筛选">
+            <button class="report-tab active" type="button" data-report-tab="companies" role="tab" aria-selected="true">公司</button>
+            <button class="report-tab" type="button" data-report-tab="topics" role="tab" aria-selected="false">话题</button>
+            <button class="report-tab" type="button" data-report-tab="date" role="tab" aria-selected="false">时间范围</button>
+          </div>
+
+          <div id="companyFilterPanel" class="report-panel active" role="tabpanel">
+            <div id="reportCompanyOptions" class="filter-chip-grid"></div>
+          </div>
+
+          <div id="topicFilterPanel" class="report-panel" role="tabpanel">
+            <div id="reportTopicOptions" class="filter-chip-grid"></div>
+          </div>
+
+          <div id="dateFilterPanel" class="report-panel" role="tabpanel">
+            <div class="date-range-grid">
+              <label>
+                <span>开始日期</span>
+                <input id="reportStartDate" type="date" />
+              </label>
+              <label>
+                <span>结束日期</span>
+                <input id="reportEndDate" type="date" />
+              </label>
+              <button id="clearDateRangeButton" class="secondary-action" type="button">清除时间</button>
+            </div>
+          </div>
+        </section>
+
+        <details id="reportPreview" class="report-preview">
+          <summary>
+            <span>报告预览</span>
+            <a id="downloadReportLink" class="download-link" href="#" download="ai-intelligence-report.md">下载 MD</a>
+          </summary>
+          <pre id="reportMarkdown"></pre>
+        </details>
+
+        <section class="metrics-grid" aria-label="指标概览">
+          <article class="metric">
+            <span>信号</span>
+            <strong id="metricSignals">0</strong>
+            <em>当前筛选命中</em>
+          </article>
+          <article class="metric">
+            <span>实体</span>
+            <strong id="metricEntities">0</strong>
+            <em>公司 / 产品簇</em>
+          </article>
+          <article class="metric">
+            <span>一手来源</span>
+            <strong id="metricPrimary">0</strong>
+            <em>官方证据</em>
+          </article>
+          <article class="metric">
+            <span>高可信</span>
+            <strong id="metricHigh">0</strong>
+            <em>可直接引用</em>
+          </article>
+        </section>
+
+        <section id="visualStrip" class="visual-strip">
+          <div id="distributionPanel" class="viz-panel">
+            <div class="section-title">
+              <h3 id="distributionTitle">主题分布</h3>
+              <span id="topicCountLabel"></span>
+            </div>
+            <div id="topicBars" class="topic-bars"></div>
+          </div>
+          <div class="viz-panel">
+            <div class="section-title">
+              <h3 id="timelineTitle">近期时间线</h3>
+              <span id="timelineHint">按日期倒序</span>
+            </div>
+            <div id="timeline" class="timeline"></div>
+          </div>
+        </section>
+
+        <section id="signalsView" class="view active">
+          <div class="section-title">
+            <h3>信号卡片</h3>
+            <span id="resultCount"></span>
+          </div>
+          <div id="signalGrid" class="signal-grid"></div>
+        </section>
+
+        <section id="matrixView" class="view">
+          <div class="section-title">
+            <h3>对标矩阵</h3>
+            <span>实体 × 主题</span>
+          </div>
+          <div class="matrix-wrap">
+            <table id="matrixTable"></table>
+          </div>
+        </section>
+
+        <section id="mapView" class="view">
+          <div class="section-title">
+            <h3>生态地图</h3>
+            <span>实体、主题与来源关系</span>
+          </div>
+          <div id="ecosystemMap" class="ecosystem-map"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./data/signals.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

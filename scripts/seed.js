@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const Database = require("better-sqlite3");
+const { runMigrations } = require("./migrate");
 
 const dbPath = process.env.SQLITE_PATH || path.join(process.cwd(), "data", "ai-intel.db");
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -9,13 +10,6 @@ const db = new Database(dbPath);
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(path.join(process.cwd(), filePath), "utf8"));
-}
-
-function migrate() {
-  const sql = fs.readFileSync(path.join(process.cwd(), "db", "001_init.sql"), "utf8");
-  db.exec("PRAGMA journal_mode = WAL;");
-  db.exec("PRAGMA foreign_keys = ON;");
-  db.exec(sql);
 }
 
 function seedSources(config) {
@@ -79,7 +73,7 @@ function seedSignals(signals) {
   }
 }
 
-migrate();
+runMigrations(db);
 const config = readJson("data/collector-config.json");
 const signals = readJson("data/signals.json");
 seedSources(config);
