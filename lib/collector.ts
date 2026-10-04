@@ -3,8 +3,10 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { focusedCompanies, normalizeCompanyName } from "./companies";
 import { inferPrimaryTopic, signalIdFromUrl, topicOrder } from "./classifier";
-import { failStaleRuns, findSimilarSignal, finishCollectionRun, insertSignal, listSources, createCollectionRun } from "./db";
+import { failStaleRuns, findSimilarSignal, finishCollectionRun, listSources, createCollectionRun } from "./db";
+import { ingestMaterial } from "./materials";
 import { resolveSourceUrl } from "./linkResolver";
+import { normalizePublicationDate } from "./evidence";
 import { isUsableSourceUrl, normalizeSourceUrl } from "./sourceUrls";
 import type { Confidence, EvidenceLevel, Signal } from "./types";
 
@@ -134,13 +136,15 @@ async function executeCollection(runId: string, options: { days?: number } = {})
           }
 
           const existing = await findSimilarSignal(signal);
-          if (existing) {
+          if (existing?.reason === "similar-title-summary") {
+            signal.aiClassification.possibleRelatedSignalId = existing.id;
+          }
+          const material = ingestMaterial("gemini-google-search", signal.id, signal, result);
+          if (!material.created) {
             stats.skippedCount += 1;
-            stats.logs.push({ level: "info", action: "skip-duplicate", newTitle: signal.title, existingId: existing.id, reason: existing.reason });
+            stats.logs.push({ level: "info", action: material.revised ? "material-revised" : "material-unchanged", existingId: material.id, revision: material.revision });
             continue;
           }
-
-          await insertSignal(signal);
           stats.insertedCount += 1;
         }
         stats.logs.push({ level: "info", entity: task.entity, topic: task.topic, days: task.days, found: results.length });
@@ -376,7 +380,7 @@ async function normalizeGeminiSignal(result: GeminiSignal, fallbackTopic: string
         status: checkedUrl ? "resolved" : isUsableSourceUrl(candidateUrl) ? "unverified-url" : "search-fallback",
         originalUrl: candidateUrl,
       },
-      needsReview: normalizeConfidence(result.confidence) !== "high",
+      needsReview: true,
     },
     confirmed: false,
   };
@@ -408,8 +412,7 @@ function clampDays(value: number) {
 }
 
 function normalizeDate(value?: string) {
-  const text = cleanString(value);
-  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : new Date().toISOString().slice(0, 10);
+  return normalizePublicationDate(value);
 }
 
 function normalizeEntityType(value?: string) {

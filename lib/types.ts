@@ -1,5 +1,5 @@
-export type EvidenceLevel = "official" | "media" | "analysis";
-export type Confidence = "high" | "medium" | "low";
+export type EvidenceLevel = "official" | "media" | "analysis" | "unknown";
+export type Confidence = "high" | "medium" | "low" | "unknown";
 
 export type Signal = {
   id: string;
@@ -22,6 +22,19 @@ export type Signal = {
   confirmed: boolean;
   createdAt: string;
   updatedAt: string;
+  discoveredAt?: string;
+  revision?: number;
+  reviewStatus?: "unreviewed" | "confirmed" | "dismissed";
+  reviewNote?: string;
+  reviewedAt?: string | null;
+  reviewedRevision?: number | null;
+  upstreamSelected?: boolean | null;
+  evidence?: {
+    sourceStatus: "direct" | "search" | "redirect" | "missing";
+    reviewStatus: "unreviewed" | "confirmed" | "dismissed" | "stale";
+    sourceLabel: string;
+    reviewLabel: string;
+  };
 };
 
 export type Source = {

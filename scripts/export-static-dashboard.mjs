@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
+import { evidenceForSignal, normalizePublicationDate } from "../lib/evidence.ts";
 
 const root = process.cwd();
 const dbPath = process.env.SQLITE_PATH || path.join(root, "data", "ai-intel.db");
@@ -12,7 +13,7 @@ const docsOutput = path.join(docsDir, "index.html");
 const topicOrder = ["模型", "Agent", "工具", "内容生态", "商业化"];
 const companyOrder = ["OpenAI", "Anthropic", "Google", "Amazon", "Microsoft", "Cursor"];
 
-const signals = loadSignals();
+const signals = loadSignals().map((signal) => ({ ...signal, date: normalizePublicationDate(signal.date), evidence: evidenceForSignal(signal) }));
 const styles = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, "utf8") : "";
 const generatedAt = new Date().toISOString();
 const html = renderHtml({ signals, styles, generatedAt });
@@ -28,7 +29,8 @@ console.log(`- ${path.relative(root, docsOutput)}`);
 function loadSignals() {
   if (fs.existsSync(dbPath)) {
     const db = new Database(dbPath, { readonly: true });
-    const rows = db.prepare("SELECT * FROM signals ORDER BY date DESC, updated_at DESC").all();
+    const hasMaterials = Boolean(db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'material_records'").get());
+    const rows = db.prepare(`SELECT signals.*${hasMaterials ? ", (SELECT max(selected) FROM material_records WHERE signal_id = signals.id AND provider = 'aihot') AS upstream_selected" : ""} FROM signals ORDER BY date DESC, updated_at DESC`).all();
     db.close();
     return rows.map(mapDbSignal);
   }
@@ -72,11 +74,16 @@ function mapDbSignal(row) {
     topicMode: String(row.topic_mode || "exclusive"),
     source: String(row.source || ""),
     domain: String(row.domain || ""),
-    url: String(row.url || ""),
+    url: String(row.source_url_override || row.url || ""),
     evidenceLevel: String(row.evidence_level || "media"),
     confidence: String(row.confidence || "medium"),
     collectionSource: String(row.collection_source || ""),
     confirmed: Boolean(row.confirmed),
+    revision: Number(row.revision || 1),
+    reviewStatus: row.review_status || "unreviewed",
+    reviewedAt: row.reviewed_at || null,
+    reviewedRevision: row.reviewed_revision || null,
+    upstreamSelected: row.upstream_selected == null ? null : Boolean(row.upstream_selected),
     updatedAt: String(row.updated_at || ""),
   };
 }
@@ -207,9 +214,9 @@ body.static-page { margin: 0; }
         <input class="search-box static-search" id="searchInput" type="search" placeholder="搜索公司、产品、主题或来源" />
       </div>
       <section class="brief-grid">
-        <article><span>FOCUS</span><strong>模型能力、Agent 执行层与企业工具化持续交汇</strong></article>
-        <article><span>METHOD</span><strong>静态 HTML 内嵌当前 SQLite 快照，来源链接可直接打开</strong></article>
-        <article><span>REVIEW</span><strong>保留确认状态与来源级别，便于后续人工校正</strong></article>
+        <article><span>最近发布</span><strong>${escapeHtml(signals.find((signal) => signal.date)?.date || "发布时间待核验")}</strong></article>
+        <article><span>原文链接</span><strong>${signals.filter((signal) => signal.evidence.sourceStatus === "direct").length} / ${signals.length} 条</strong></article>
+        <article><span>当前版本已核验</span><strong>${counts.highCount} 条</strong></article>
       </section>
       <section class="static-banner">
         <div>
@@ -221,8 +228,8 @@ body.static-page { margin: 0; }
       <section class="static-summary-grid" aria-label="概要指标">
         <div class="static-kpi"><span>信号</span><strong>${signals.length}</strong></div>
         <div class="static-kpi"><span>公司 / 主体</span><strong>${counts.companyCount}</strong></div>
-        <div class="static-kpi"><span>一手来源</span><strong>${counts.officialCount}</strong></div>
-        <div class="static-kpi"><span>高可信</span><strong>${counts.highCount}</strong></div>
+        <div class="static-kpi"><span>一手标注</span><strong>${counts.officialCount}</strong></div>
+        <div class="static-kpi"><span>人工已核验</span><strong>${counts.highCount}</strong></div>
       </section>
       <section class="static-controls">
         <div class="static-control-row" id="topicChips"></div>
@@ -253,7 +260,7 @@ function countSignals(signals) {
   for (const signal of signals) {
     for (const company of signal.companies || []) companies.add(company);
     if (signal.evidenceLevel === "official") officialCount += 1;
-    if (signal.confidence === "high") highCount += 1;
+    if (signal.evidence.reviewStatus === "confirmed") highCount += 1;
   }
   return { companyCount: companies.size, officialCount, highCount };
 }
@@ -319,20 +326,22 @@ function clientScript() {
       article.innerHTML = \`
         <div class="signal-top">
           <span class="tag \${topicClass[topic] || "tool"}">\${escapeHtml(topic)}</span>
-          <span>\${escapeHtml(signal.date || "")}</span>
+          <span>\${escapeHtml(signal.date || "发布时间未知")}</span>
         </div>
         <h4>\${escapeHtml(signal.title || "")}</h4>
         <p>\${escapeHtml(signal.summary || "")}</p>
         <div class="evidence-line">
           <span class="evidence-pill">\${formatEvidence(signal.evidenceLevel)}</span>
           <span class="evidence-pill">\${formatConfidence(signal.confidence)}</span>
-          <span class="evidence-pill">\${signal.confirmed ? "已确认" : "待确认"}</span>
+          <span class="evidence-pill">\${escapeHtml(signal.evidence.reviewLabel)}</span>
+          <span class="evidence-pill">\${escapeHtml(signal.evidence.sourceLabel)}</span>
+          \${signal.upstreamSelected === false ? '<span class="evidence-pill">上游已撤选</span>' : ''}
         </div>
         <div class="signal-meta">
           <span><b>\${escapeHtml((signal.companies || []).join(" / ") || signal.entity || "")}</b> · \${escapeHtml(signal.product || "")}</span>
           <span>\${escapeHtml(signal.source || "")} · \${escapeHtml(signal.domain || "")}</span>
           <span>采集：\${escapeHtml(signal.collectionSource || "")} · 更新：\${escapeHtml(formatDateTime(signal.updatedAt || ""))}</span>
-          \${signal.url ? \`<a href="\${escapeAttr(signal.url)}" target="_blank" rel="noreferrer">打开来源</a>\` : "<span>来源链接待核验</span>"}
+          \${["direct", "search"].includes(signal.evidence.sourceStatus) ? \`<a href="\${escapeAttr(signal.url)}" target="_blank" rel="noreferrer">\${signal.evidence.sourceStatus === "direct" ? "打开原文" : "查看搜索线索"}</a>\` : "<span>来源链接待核验</span>"}
         </div>\`;
       grid.appendChild(article);
     }
@@ -361,11 +370,11 @@ function clientScript() {
   }
 
   function formatEvidence(value) {
-    return value === "official" ? "一手" : value === "analysis" ? "分析" : "媒体";
+    return value === "official" ? "一手标注" : value === "analysis" ? "分析" : value === "unknown" ? "来源待分类" : "媒体";
   }
 
   function formatConfidence(value) {
-    return value === "high" ? "高可信" : value === "low" ? "低可信" : "中可信";
+    return value === "high" ? "模型判断：高" : value === "low" ? "模型判断：低" : value === "unknown" ? "未评可信度" : "模型判断：中";
   }
 
   function formatDateTime(value) {

@@ -79,6 +79,28 @@ a:focus-visible {
   text-decoration: none;
 }
 
+.report-tools { margin-bottom: 20px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.report-tools > summary, .signal-review > summary { cursor: pointer; font-weight: 600; padding: 10px 0; }
+.signal-review { margin-top: 12px; border-top: 1px solid var(--line); }
+.signal-review form { display: grid; gap: 12px; }
+.signal-review label { display: grid; gap: 5px; font-size: 13px; color: var(--ink-2); }
+.signal-review input, .signal-review select, .signal-review textarea {
+  min-width: 0; width: 100%; padding: 8px; border: 1px solid var(--line-strong); border-radius: 4px; background: white; font: inherit; color: var(--ink);
+}
+.signal-review textarea { resize: vertical; }
+.review-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.review-message { font-size: 13px; overflow-wrap: anywhere; }
+.material-history { min-width: 0; margin-top: 12px; }
+.material-history pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; font-size: 12px; }
+.material-history summary { overflow-wrap: anywhere; cursor: pointer; }
+.aihot-sync { padding: 16px 0; margin-bottom: 20px; border-block: 1px solid var(--line); }
+.sync-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.sync-facts dt { color: var(--muted); font-size: 12px; }
+.sync-facts dd { margin: 4px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+.signal-card { min-width: 0; overflow-wrap: anywhere; }
+select:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@media (max-width: 640px) { .sync-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
 .skip-link:focus {
   transform: translateY(0);
 }

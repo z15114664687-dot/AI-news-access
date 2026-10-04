@@ -3,6 +3,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { companiesForSignal, normalizeCompanyName } from "./companies";
 import { sourceKeyForUrl } from "./sourceUrls";
+import { evidenceForSignal, normalizePublicationDate, sourceStatus } from "./evidence";
 import type { CollectionRun, Signal, SignalFilters, Source } from "./types";
 
 const dbPath = process.env.SQLITE_PATH || path.join(process.cwd(), "data", "ai-intel.db");
@@ -72,9 +73,9 @@ function parseJson<T>(value: unknown, fallback: T): T {
 }
 
 function mapSignal(row: Record<string, unknown>): Signal {
-  return {
+  const signal: Signal = {
     id: String(row.id),
-    date: String(row.date),
+    date: normalizePublicationDate(row.date),
     entity: String(row.entity),
     entityType: String(row.entity_type),
     companies: parseJson<string[]>(row.companies, []),
@@ -85,7 +86,7 @@ function mapSignal(row: Record<string, unknown>): Signal {
     topicMode: String(row.topic_mode),
     source: String(row.source),
     domain: String(row.domain),
-    url: String(row.url),
+    url: String(row.source_url_override || row.url),
     evidenceLevel: row.evidence_level as Signal["evidenceLevel"],
     confidence: row.confidence as Signal["confidence"],
     collectionSource: String(row.collection_source),
@@ -93,7 +94,15 @@ function mapSignal(row: Record<string, unknown>): Signal {
     confirmed: Boolean(row.confirmed),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
+    discoveredAt: String(row.discovered_at || row.created_at),
+    revision: Number(row.revision || 1),
+    reviewStatus: row.review_status as Signal["reviewStatus"],
+    reviewNote: String(row.review_note || ""),
+    reviewedAt: row.reviewed_at ? String(row.reviewed_at) : null,
+    reviewedRevision: row.reviewed_revision ? Number(row.reviewed_revision) : null,
+    upstreamSelected: row.upstream_selected == null ? null : Boolean(row.upstream_selected),
   };
+  return { ...signal, evidence: evidenceForSignal(signal) };
 }
 
 function mapRun(row: Record<string, unknown>): CollectionRun {
@@ -131,7 +140,8 @@ export async function listSignals(filters: SignalFilters = {}) {
     );
     params.push(...filters.topics);
   }
-  const sql = `SELECT * FROM signals${where.length ? ` WHERE ${where.join(" AND ")}` : ""} ORDER BY date DESC, updated_at DESC`;
+  const sql = `SELECT signals.*, (SELECT max(selected) FROM material_records WHERE signal_id = signals.id AND provider = 'aihot') AS upstream_selected
+    FROM signals${where.length ? ` WHERE ${where.join(" AND ")}` : ""} ORDER BY date DESC, updated_at DESC`;
   const rows = db.prepare(sql).all(...params) as Array<Record<string, unknown>>;
   return rows.map(mapSignal).filter((signal) => {
     // 公司过滤和全文匹配依赖别名归一化，留在 JS 层
@@ -233,15 +243,15 @@ export async function findSimilarSignal(signal: Omit<Signal, "createdAt" | "upda
   return null;
 }
 
-export async function insertSignal(signal: Omit<Signal, "createdAt" | "updatedAt">) {
+export function insertSignal(signal: Omit<Signal, "createdAt" | "updatedAt">) {
   db.prepare(
     `INSERT INTO signals (
       id, date, entity, entity_type, companies, product, title, summary, topics, topic_mode,
-      source, domain, url, source_key, evidence_level, confidence, collection_source, ai_classification, confirmed
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      source, domain, url, source_key, evidence_level, confidence, collection_source, ai_classification, confirmed, discovered_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     signal.id,
-    signal.date,
+    normalizePublicationDate(signal.date),
     signal.entity,
     signal.entityType,
     JSON.stringify(signal.companies),
@@ -259,7 +269,32 @@ export async function insertSignal(signal: Omit<Signal, "createdAt" | "updatedAt
     signal.collectionSource,
     JSON.stringify(signal.aiClassification),
     signal.confirmed ? 1 : 0,
+    signal.discoveredAt || new Date().toISOString(),
   );
+}
+
+export function getSignal(id: string) {
+  const row = db.prepare(`SELECT signals.*, (SELECT max(selected) FROM material_records WHERE signal_id = signals.id AND provider = 'aihot') AS upstream_selected FROM signals WHERE id = ?`).get(id) as Record<string, unknown> | undefined;
+  return row ? mapSignal(row) : null;
+}
+
+export function updateSignalReview(id: string, input: { status: string; note: string; revision: number; updatedAt: string; sourceUrl?: string }) {
+  return db.transaction(() => {
+    const current = getSignal(id);
+    if (!current) throw new Error("Signal not found");
+    if (current.revision !== input.revision || current.updatedAt !== input.updatedAt) throw new Error("Signal changed; reload before reviewing");
+    if (!["unreviewed", "confirmed", "dismissed"].includes(input.status) || typeof input.note !== "string" || input.note.length > 5000) throw new Error("Invalid review");
+    if (input.sourceUrl !== undefined && (typeof input.sourceUrl !== "string" || input.sourceUrl.length > 4000 || (input.sourceUrl && sourceStatus(input.sourceUrl) !== "direct"))) throw new Error("Invalid original source URL");
+    const original = db.prepare("SELECT url, source_url_override FROM signals WHERE id = ?").get(id) as { url: string; source_url_override: string | null };
+    const override = input.sourceUrl === undefined ? original.source_url_override : input.sourceUrl || null;
+    const effectiveUrl = override || original.url;
+    if (input.status === "confirmed" && sourceStatus(effectiveUrl) !== "direct") throw new Error("A direct source is required for confirmation");
+    const revision = current.revision! + Number(effectiveUrl !== current.url);
+    const now = new Date(Math.max(Date.now(), Date.parse(current.updatedAt) + 1)).toISOString();
+    db.prepare(`UPDATE signals SET review_status = ?, review_note = ?, reviewed_at = ?, reviewed_revision = ?, confirmed = ?, updated_at = ?, source_url_override = ?, revision = ? WHERE id = ?`)
+      .run(input.status, input.note, input.status === "unreviewed" ? null : now, revision, input.status === "confirmed" ? 1 : 0, now, override, revision, id);
+    return getSignal(id)!;
+  })();
 }
 
 function normalizedCompanies(companies: string[], entity: string) {
@@ -348,13 +383,24 @@ export async function finishCollectionRun(
   ).run(status, stats.foundCount, stats.insertedCount, stats.skippedCount, stats.errorCount, JSON.stringify(stats.logs), id);
 }
 
-export async function saveReport(id: string, title: string, markdown: string, filters: SignalFilters) {
-  db.prepare("INSERT INTO reports (id, title, markdown, filters) VALUES (?, ?, ?, ?)").run(
+export async function saveReport(id: string, title: string, markdown: string, filters: SignalFilters, evidence: unknown[] = []) {
+  db.prepare("INSERT INTO reports (id, title, markdown, filters, evidence_snapshot) VALUES (?, ?, ?, ?, ?)").run(
     id,
     title,
     markdown,
     JSON.stringify(filters),
+    JSON.stringify(evidence),
   );
+}
+
+export function previousReportEvidence(filters: SignalFilters): Array<{ signalId: string; revision: number }> {
+  const row = db.prepare("SELECT evidence_snapshot FROM reports WHERE filters = ? ORDER BY rowid DESC LIMIT 1").get(JSON.stringify(filters)) as { evidence_snapshot: string } | undefined;
+  return row ? parseJson(row.evidence_snapshot, []) : [];
+}
+
+export function getReport(id: string) {
+  const row = db.prepare("SELECT * FROM reports WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  return row ? { id: String(row.id), markdown: String(row.markdown), evidence: parseJson<unknown[]>(row.evidence_snapshot, []) } : null;
 }
 
 export async function upsertSource(source: { name: string; domain: string; queryTemplate: string }) {

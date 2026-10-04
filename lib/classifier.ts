@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { normalizeCompanyName } from "./companies";
+import { normalizePublicationDate } from "./evidence";
 import type { Confidence, EvidenceLevel, Signal } from "./types";
 
 export const topicOrder = ["模型", "Agent", "工具", "内容生态", "商业化"];
@@ -54,7 +55,7 @@ export function classifySearchResult(result: RawSearchResult): Omit<Signal, "cre
 
   return {
     id: signalIdFromUrl(result.url),
-    date: result.date || new Date().toISOString().slice(0, 10),
+    date: normalizePublicationDate(result.date),
     entity: primaryCompany || "Market Signal",
     entityType: primaryCompany ? "company" : "market_signal",
     companies: companies.length ? companies : primaryCompany ? [primaryCompany] : [],

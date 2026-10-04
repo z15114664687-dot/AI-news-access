@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { companiesForSignal, focusedCompanies } from "@/lib/companies";
 import { sourceUrlForSignal } from "@/lib/sourceUrls";
+import { evidenceForSignal } from "@/lib/evidence";
+import SignalReview from "./SignalReview";
+import AIHOTSync from "./AIHOTSync";
 import type { CollectionRun, Signal, Source } from "@/lib/types";
 
 const topicOrder = ["模型", "Agent", "工具", "内容生态", "商业化"];
@@ -61,6 +64,7 @@ export default function Dashboard() {
   const [query, setQuery] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [collectDays, setCollectDays] = useState(30);
+  const [error, setError] = useState("");
   const [report, setReport] = useState<ReportState>({
     tab: "companies",
     topics: [],
@@ -73,7 +77,7 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
-    Promise.all([loadSignals(), loadCollectionState(true)]).finally(() => setLoading(false));
+    Promise.all([loadSignals(), loadCollectionState(true)]).catch(() => setError("加载失败，请刷新页面重试。")).finally(() => setLoading(false));
   }, []);
 
   const companies = useMemo(() => companyList(signals), [signals]);
@@ -110,12 +114,7 @@ export default function Dashboard() {
           ? "按公司查看"
           : `${companyName} 公司页`;
 
-  const briefingFocus =
-    mode === "overview"
-      ? "模型能力正在向 Agent 执行层和企业工具层迁移"
-      : mode === "topic"
-        ? "当前视图聚焦同一主题下的跨公司与行业信号"
-        : "当前视图聚焦单公司相关的主题覆盖与近期动作";
+  const briefingFocus = filteredSignals.find((signal) => signal.date)?.date || "发布时间待核验";
 
   async function loadSignals() {
     const response = await fetch("/api/signals", { cache: "no-store" });
@@ -159,6 +158,7 @@ export default function Dashboard() {
   }
 
   async function generateReport() {
+    setError("");
     setReport((current) => ({ ...current, generating: true }));
     try {
       const response = await fetch("/api/reports", {
@@ -174,13 +174,15 @@ export default function Dashboard() {
           query: query || undefined,
         }),
       });
-      if (!response.ok) return;
+      if (!response.ok) throw new Error("报告生成失败，请重试。");
       const data = await response.json();
       setReport((current) => ({
         ...current,
         markdown: data.report.markdown,
         filename: data.report.filename,
       }));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "报告生成失败");
     } finally {
       setReport((current) => ({ ...current, generating: false }));
     }
@@ -345,19 +347,21 @@ export default function Dashboard() {
 
           <section className="briefing-strip" aria-label="当前情报摘要">
             <div>
-              <span>Focus</span>
+              <span>最近发布</span>
               <strong>{briefingFocus}</strong>
             </div>
             <div>
-              <span>Method</span>
-              <strong>Gemini 搜索 grounding + 自动分类摘要 + 来源 URL 留痕</strong>
+              <span>原文链接</span>
+              <strong>{filteredSignals.filter((signal) => sourceUrlForSignal(signal)).length} / {filteredSignals.length} 条</strong>
             </div>
             <div>
-              <span>Review</span>
-              <strong>自动采集条目默认未确认，高价值信号再原文核验</strong>
+              <span>当前版本已核验</span>
+              <strong>{filteredSignals.filter((signal) => evidenceForSignal(signal).reviewStatus === "confirmed").length} 条</strong>
             </div>
           </section>
 
+          <details className="report-tools">
+          <summary>研究报告</summary>
           <ReportBuilder
             mode={mode}
             topic={topic}
@@ -368,6 +372,8 @@ export default function Dashboard() {
             generateReport={generateReport}
             downloadReport={downloadReport}
           />
+          </details>
+          {error && <p role="alert" className="collect-alert">{error}</p>}
 
           <Metrics signals={filteredSignals} />
 
@@ -395,7 +401,7 @@ export default function Dashboard() {
               <h3>信号卡片</h3>
               <span>{filteredSignals.length} 条</span>
             </div>
-            <SignalGrid signals={filteredSignals} />
+            <SignalGrid signals={filteredSignals} onSaved={(updated) => setSignals((current) => current.map((signal) => signal.id === updated.id ? updated : signal))} />
           </section>
 
           <section id="matrixView" className={`view${view === "matrix" ? " active" : ""}`}>
@@ -419,6 +425,7 @@ export default function Dashboard() {
               <h3>采集任务</h3>
               <span>{sources.length} 个来源配置</span>
             </div>
+            <AIHOTSync onSynced={loadSignals} />
             <CollectionPanel
               sources={sources}
               runs={runs}
@@ -561,13 +568,13 @@ function ReportBuilder({
 function Metrics({ signals }: { signals: Signal[] }) {
   const entities = new Set(signals.flatMap(company));
   const primary = signals.filter((signal) => signal.evidenceLevel === "official").length;
-  const high = signals.filter((signal) => signal.confidence === "high").length;
+  const high = signals.filter((signal) => evidenceForSignal(signal).reviewStatus === "confirmed").length;
   return (
     <section className="metrics-grid" aria-label="指标概览">
       <Metric label="信号" value={signals.length} caption="当前筛选命中" />
       <Metric label="实体" value={entities.size} caption="公司 / 产品簇" />
-      <Metric label="一手来源" value={primary} caption="官方证据" />
-      <Metric label="高可信" value={high} caption="可直接引用" />
+      <Metric label="一手标注" value={primary} caption="来源类型待独立核验" />
+      <Metric label="已核验" value={high} caption="人工核对当前版本" />
     </section>
   );
 }
@@ -584,7 +591,7 @@ function Metric({ label, value, caption }: { label: string; value: number; capti
 
 function SourceMix({ signals }: { signals: Signal[] }) {
   const groups = countBy(signals, (signal) => signal.evidenceLevel);
-  const labels: Record<string, string> = { official: "一手来源", media: "权威媒体", analysis: "分析转载" };
+  const labels: Record<string, string> = { official: "一手标注", media: "媒体", analysis: "分析转载", unknown: "待分类" };
   const max = Math.max(1, ...Object.values(groups));
   return (
     <div className="source-mix">
@@ -637,7 +644,7 @@ function Timeline({ signals }: { signals: Signal[] }) {
     <div className="timeline">
       {items.map((signal) => (
         <div className="timeline-item" key={signal.id}>
-          <div className="timeline-date">{signal.date}</div>
+          <div className="timeline-date">{signal.date || "日期未知"}</div>
           <p className="timeline-text">
             <b>{company(signal).join(" / ") || signal.entity}</b> · {signal.title}
           </p>
@@ -647,25 +654,28 @@ function Timeline({ signals }: { signals: Signal[] }) {
   );
 }
 
-function SignalGrid({ signals }: { signals: Signal[] }) {
+function SignalGrid({ signals, onSaved }: { signals: Signal[]; onSaved: (signal: Signal) => void }) {
   if (!signals.length) return <p className="empty-state">没有匹配信号</p>;
   return (
     <div className="signal-grid">
       {signals.map((signal) => {
         const mainTopic = signal.topics[0] || "工具";
         const sourceUrl = sourceUrlForSignal(signal);
+        const evidence = evidenceForSignal(signal);
         return (
           <article className="signal-card" key={signal.id}>
             <div className="signal-top">
               <span className={`tag ${topicClass[mainTopic] || "tool"}`}>{mainTopic}</span>
-              <span>{signal.date}</span>
+              <span>{signal.date || "发布时间未知"}</span>
             </div>
             <h4>{signal.title}</h4>
             <p>{signal.summary}</p>
             <div className="evidence-line">
               <span className="evidence-pill">{formatEvidence(signal.evidenceLevel)}</span>
               <span className="evidence-pill">{formatConfidence(signal.confidence)}</span>
-              <span className="evidence-pill">{signal.confirmed ? "已确认" : "待确认"}</span>
+              <span className="evidence-pill">{evidence.reviewLabel}</span>
+              <span className="evidence-pill">{evidence.sourceLabel}</span>
+              {signal.upstreamSelected === false && <span className="evidence-pill">上游已撤选</span>}
             </div>
             <div className="signal-meta">
               <span>
@@ -680,12 +690,13 @@ function SignalGrid({ signals }: { signals: Signal[] }) {
               </span>
               {sourceUrl ? (
                 <a href={sourceUrl} target="_blank" rel="noreferrer">
-                  打开来源
+                  打开原文
                 </a>
               ) : (
-                <span>来源链接待核验</span>
+                evidence.sourceStatus === "search" ? <a href={signal.url} target="_blank" rel="noreferrer">查看搜索线索</a> : <span>来源链接待核验</span>
               )}
             </div>
+            <SignalReview key={`${signal.id}:${signal.revision}`} signal={signal} onSaved={onSaved} />
           </article>
         );
       })}
@@ -953,11 +964,11 @@ function countBy<T>(items: T[], fn: (item: T) => string) {
 }
 
 function formatEvidence(value: string) {
-  return { official: "一手", media: "媒体", analysis: "分析" }[value] || value;
+  return { official: "一手标注", media: "媒体", analysis: "分析", unknown: "来源待分类" }[value] || value;
 }
 
 function formatConfidence(value: string) {
-  return { high: "高可信", medium: "中可信", low: "低可信" }[value] || value;
+  return { high: "模型判断：高", medium: "模型判断：中", low: "模型判断：低", unknown: "未评可信度" }[value] || value;
 }
 
 function formatDateTime(value: string) {

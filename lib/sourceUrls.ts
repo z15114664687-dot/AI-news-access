@@ -1,4 +1,5 @@
 import type { Signal } from "./types";
+import { sourceStatus } from "./evidence";
 
 const groundingRedirectHost = "vertexaisearch.cloud.google.com";
 const verificationCache = new Map<string, Promise<string>>();
@@ -44,9 +45,7 @@ export function isGroundingRedirectUrl(value: string) {
 
 export function isUsableSourceUrl(value: string) {
   const normalized = normalizeSourceUrl(value);
-  if (!/^https?:\/\//i.test(normalized)) return false;
-  if (isGroundingRedirectUrl(normalized)) return false;
-  return true;
+  return sourceStatus(normalized) === "direct";
 }
 
 export function sourceUrlForSignal(signal: Pick<Signal, "url">) {
@@ -77,7 +76,7 @@ async function verifyUrl(url: string) {
     if (get.status >= 200 && get.status < 400) return usableFinalUrl(get.url || url);
   }
 
-  return url;
+  return "";
 }
 
 async function requestHeaders(url: string, method: "HEAD" | "GET") {

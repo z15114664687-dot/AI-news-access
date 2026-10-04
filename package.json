@@ -7,10 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "test": "tsc -p tests/tsconfig.json && node --test --test-concurrency=1 tests/*.test.mjs",
     "db:migrate": "node scripts/migrate.js",
     "db:seed": "node scripts/seed.js",
     "db:setup": "npm run db:migrate && npm run db:seed",
     "collect": "node scripts/collect.mjs",
+    "sync:aihot": "node scripts/sync-aihot.mjs",
     "links:repair": "node scripts/repair-source-links.mjs",
     "static:export": "node scripts/export-static-dashboard.mjs",
     "local:setup": "npm run db:setup",
@@ -35,6 +37,6 @@
     "postcss": "8.5.10"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   }
 }
