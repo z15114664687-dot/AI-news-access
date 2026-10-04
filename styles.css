@@ -1436,3 +1436,8 @@ tbody tr:hover {
     margin-top: 6px;
   }
 }
+.topic-classification { min-width: 0; }
+.topic-result { margin-top: 12px; overflow-wrap: anywhere; }
+.topic-probabilities { margin: 8px 0; font-size: 12px; }
+.topic-probabilities > div { display: flex; justify-content: space-between; gap: 12px; }
+.topic-probabilities dd { margin: 0; font-variant-numeric: tabular-nums; }

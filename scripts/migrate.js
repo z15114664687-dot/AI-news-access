@@ -11,12 +11,7 @@ function runMigrations(db) {
     "CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
   );
 
-  const applied = new Set(
-    db
-      .prepare("SELECT version FROM schema_migrations")
-      .all()
-      .map((row) => row.version),
-  );
+  const applied = db.prepare("SELECT 1 FROM schema_migrations WHERE version = ?");
   const files = fs
     .readdirSync(migrationsDir)
     .filter((file) => file.endsWith(".sql"))
@@ -24,12 +19,12 @@ function runMigrations(db) {
 
   const appliedNow = [];
   for (const file of files) {
-    if (applied.has(file)) continue;
     db.transaction(() => {
+      if (applied.get(file)) return;
       db.exec(fs.readFileSync(path.join(migrationsDir, file), "utf8"));
       db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(file);
-    })();
-    appliedNow.push(file);
+      appliedNow.push(file);
+    }).immediate();
   }
   return appliedNow;
 }

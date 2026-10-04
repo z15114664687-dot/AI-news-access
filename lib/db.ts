@@ -28,20 +28,19 @@ export function migrate() {
   db.exec(
     "CREATE TABLE IF NOT EXISTS schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
   );
-  const applied = new Set(
-    (db.prepare("SELECT version FROM schema_migrations").all() as Array<{ version: string }>).map((row) => row.version),
-  );
+  const applied = db.prepare("SELECT 1 FROM schema_migrations WHERE version = ?");
   const migrationsDir = path.join(process.cwd(), "db", "migrations");
   const files = fs
     .readdirSync(migrationsDir)
     .filter((file) => file.endsWith(".sql"))
     .sort();
   for (const file of files) {
-    if (applied.has(file)) continue;
+    // Build workers may open the same fresh database concurrently.
     db.transaction(() => {
+      if (applied.get(file)) return;
       db.exec(fs.readFileSync(path.join(migrationsDir, file), "utf8"));
       db.prepare("INSERT INTO schema_migrations (version) VALUES (?)").run(file);
-    })();
+    }).immediate();
   }
 }
 
@@ -82,7 +81,8 @@ function mapSignal(row: Record<string, unknown>): Signal {
     product: String(row.product || ""),
     title: String(row.title),
     summary: String(row.summary),
-    topics: parseJson<string[]>(row.topics, []),
+    topics: row.topic_override ? [String(row.topic_override)] : parseJson<string[]>(row.topics, []),
+    topicOverride: row.topic_override ? String(row.topic_override) : null,
     topicMode: String(row.topic_mode),
     source: String(row.source),
     domain: String(row.domain),
@@ -131,12 +131,12 @@ export async function listSignals(filters: SignalFilters = {}) {
     params.push(filters.endDate);
   }
   if (filters.topic) {
-    where.push("EXISTS (SELECT 1 FROM json_each(signals.topics) WHERE json_each.value = ?)");
+    where.push("EXISTS (SELECT 1 FROM json_each(CASE WHEN topic_override IS NOT NULL THEN json_array(topic_override) ELSE signals.topics END) WHERE json_each.value = ?)");
     params.push(filters.topic);
   }
   if (filters.topics?.length) {
     where.push(
-      `EXISTS (SELECT 1 FROM json_each(signals.topics) WHERE json_each.value IN (${filters.topics.map(() => "?").join(", ")}))`,
+      `EXISTS (SELECT 1 FROM json_each(CASE WHEN topic_override IS NOT NULL THEN json_array(topic_override) ELSE signals.topics END) WHERE json_each.value IN (${filters.topics.map(() => "?").join(", ")}))`,
     );
     params.push(...filters.topics);
   }

@@ -5,6 +5,7 @@ import { companiesForSignal, focusedCompanies } from "@/lib/companies";
 import { sourceUrlForSignal } from "@/lib/sourceUrls";
 import { evidenceForSignal } from "@/lib/evidence";
 import SignalReview from "./SignalReview";
+import TopicClassifier from "./TopicClassifier";
 import AIHOTSync from "./AIHOTSync";
 import type { CollectionRun, Signal, Source } from "@/lib/types";
 
@@ -697,6 +698,7 @@ function SignalGrid({ signals, onSaved }: { signals: Signal[]; onSaved: (signal:
               )}
             </div>
             <SignalReview key={`${signal.id}:${signal.revision}`} signal={signal} onSaved={onSaved} />
+            <TopicClassifier key={`topic:${signal.id}:${signal.revision}`} signal={signal} onSaved={onSaved} />
           </article>
         );
       })}

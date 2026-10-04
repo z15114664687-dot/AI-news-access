@@ -1,6 +1,16 @@
 export type EvidenceLevel = "official" | "media" | "analysis" | "unknown";
 export type Confidence = "high" | "medium" | "low" | "unknown";
 
+export type TopicSuggestion = {
+  hash: string;
+  model: string;
+  promptVersion: string;
+  topic: string | null;
+  confidence: number;
+  probabilities: Array<{ topic: string; probability: number }>;
+  cached: boolean;
+};
+
 export type Signal = {
   id: string;
   date: string;
@@ -11,6 +21,7 @@ export type Signal = {
   title: string;
   summary: string;
   topics: string[];
+  topicOverride?: string | null;
   topicMode: string;
   source: string;
   domain: string;

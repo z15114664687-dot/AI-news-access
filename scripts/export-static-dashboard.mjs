@@ -70,7 +70,7 @@ function mapDbSignal(row) {
     product: String(row.product || ""),
     title: String(row.title || ""),
     summary: String(row.summary || ""),
-    topics: parseJson(row.topics, ["工具"]),
+    topics: row.topic_override ? [String(row.topic_override)] : parseJson(row.topics, ["工具"]),
     topicMode: String(row.topic_mode || "exclusive"),
     source: String(row.source || ""),
     domain: String(row.domain || ""),
